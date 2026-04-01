@@ -75,8 +75,8 @@ function SaasDashboardPage() {
             <div key={org.id} className="saas-organization-card">
               <div className="saas-organization-top">
                 <Link to="/saas/module-requests" className="saas-primary-btn">
-  Review module requests
-</Link>
+                Review module requests
+                </Link>
                 <div className="saas-organization-logo">
                   {org.name?.charAt(0)}
                 </div>
