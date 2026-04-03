@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getOrganizationBySlug } from "../services/organizationService";
+import { getCurrentOrganization } from "../services/organizationService";
 import { getOrganizationBackOfficeModules } from "../services/orgBackOfficeService";
 import "../styles/organizationBackOfficePage.css";
 
@@ -13,7 +13,7 @@ function OrganizationBackOfficePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const org = await getOrganizationBySlug(slug);
+        const org = await getCurrentOrganization();
         setOrganization(org);
 
         if (org?.id) {
@@ -73,7 +73,7 @@ function OrganizationBackOfficePage() {
           <h2>Granted Modules</h2>
           <p>{modules.length} module(s) available for this organization.</p>
           <Link
-            to={`/organizations/${organization.slug}/backoffice/modules`}
+            to={`/backoffice/modules`}
             className="org-bo-btn"
           >
             Manage modules
@@ -84,7 +84,7 @@ function OrganizationBackOfficePage() {
           <h2>Front-office Design</h2>
           <p>Update logo, colors, title, banner, and footer text.</p>
           <Link
-            to={`/organizations/${organization.slug}/backoffice/design`}
+            to={`/backoffice/design`}
             className="org-bo-btn"
           >
             Customize design
@@ -94,7 +94,7 @@ function OrganizationBackOfficePage() {
         <div className="org-bo-card">
           <h2>Extra Module Requests</h2>
           <p>Request missing modules from Back-office SaaS.</p>
-          <Link to={`/organizations/${organization.slug}/backoffice/module-requests`}className="org-bo-btn">
+          <Link to={`/backoffice/module-requests`}className="org-bo-btn">
           Request module
           </Link>
         </div>

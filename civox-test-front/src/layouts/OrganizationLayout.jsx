@@ -1,15 +1,13 @@
-import { Link, Outlet, useParams } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getOrganizationBySlug } from "../services/organizationService";
+import { getCurrentOrganization } from "../services/organizationService";
 import {
-  getOrganizationSettingsBySlug,
-  getVisibleModulesBySlug,
+  getCurrentOrganizationSettings,
+  getCurrentOrganizationModules,
 } from "../services/organizationDynamicService";
 import "../styles/organizationLayout.css";
 
 function OrganizationLayout() {
-  const { slug } = useParams();
-
   const [organization, setOrganization] = useState(null);
   const [settings, setSettings] = useState(null);
   const [modules, setModules] = useState([]);
@@ -19,9 +17,9 @@ function OrganizationLayout() {
     const loadData = async () => {
       try {
         const [organizationData, settingsData, modulesData] = await Promise.all([
-          getOrganizationBySlug(slug),
-          getOrganizationSettingsBySlug(slug),
-          getVisibleModulesBySlug(slug),
+          getCurrentOrganization(),
+          getCurrentOrganizationSettings(),
+          getCurrentOrganizationModules(),
         ]);
 
         setOrganization(organizationData);
@@ -35,13 +33,13 @@ function OrganizationLayout() {
     };
 
     loadData();
-  }, [slug]);
+  }, []);
 
   if (loading) return <div>Loading...</div>;
-  if (!organization || !settings) return <Outlet />;
+  if (!organization || !settings) return <div>Failed to load organization.</div>;
 
   const layoutStyle = {
-    "--org-primary": settings.primaryColor || "#2563eb",
+    "--org-primary": settings.primaryColor || "#0faa9d",
     "--org-secondary": settings.secondaryColor || "#7c3aed",
   };
 
@@ -52,7 +50,11 @@ function OrganizationLayout() {
           <div className="organization-brand">
             <div className="organization-brand-logo">
               {settings.logoUrl ? (
-                <img src={settings.logoUrl} alt={organization.name} className="organization-brand-logo-image" />
+                <img
+                  src={settings.logoUrl}
+                  alt={organization.name}
+                  className="organization-brand-logo-image"
+                />
               ) : (
                 organization.name?.charAt(0)
               )}

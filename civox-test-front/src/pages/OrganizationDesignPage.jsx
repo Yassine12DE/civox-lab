@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getOrganizationBySlug } from "../services/organizationService";
+import { getCurrentOrganization } from "../services/organizationService";
 import {
   getOrganizationSettings,
   updateOrganizationSettings,
@@ -15,7 +15,7 @@ function OrganizationDesignPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const org = await getOrganizationBySlug(slug);
+        const org = await getCurrentOrganization();
         setOrganization(org);
 
         if (org?.id) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { modules } from "../data/modules";
-import { getOrganizationBySlug } from "../services/organizationService";
+import { getCurrentOrganization } from "../services/organizationService";
 import {
   createModuleRequest,
   getOrganizationBackOfficeModules,
@@ -20,7 +20,7 @@ function OrganizationModuleRequestPage() {
 
   const loadData = async () => {
     try {
-      const org = await getOrganizationBySlug(slug);
+      const org = await getCurrentOrganization();
       setOrganization(org);
 
       if (org?.id) {

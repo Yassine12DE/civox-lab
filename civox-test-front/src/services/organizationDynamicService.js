@@ -1,7 +1,7 @@
 import API_BASE_URL from "./api";
 
-export async function getOrganizationSettingsBySlug(slug) {
-  const response = await fetch(`${API_BASE_URL}/public/organizations/${slug}/settings`);
+export async function getCurrentOrganizationSettings() {
+  const response = await fetch(`${API_BASE_URL}/public/organization/settings`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch organization settings");
@@ -10,8 +10,8 @@ export async function getOrganizationSettingsBySlug(slug) {
   return await response.json();
 }
 
-export async function getVisibleModulesBySlug(slug) {
-  const response = await fetch(`${API_BASE_URL}/public/organizations/${slug}/modules`);
+export async function getCurrentOrganizationModules() {
+  const response = await fetch(`${API_BASE_URL}/public/organization/modules`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch organization modules");

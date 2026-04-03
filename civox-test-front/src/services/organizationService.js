@@ -10,8 +10,8 @@ export async function getPublicOrganizations() {
   return await response.json();
 }
 
-export async function getOrganizationBySlug(slug) {
-  const response = await fetch(`${API_BASE_URL}/public/organizations/${slug}`);
+export async function getCurrentOrganization() {
+  const response = await fetch(`${API_BASE_URL}/public/organization`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch organization details");

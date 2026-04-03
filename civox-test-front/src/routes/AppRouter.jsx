@@ -13,34 +13,40 @@ import OrganizationManageModulesPage from "../pages/OrganizationManageModulesPag
 import OrganizationDesignPage from "../pages/OrganizationDesignPage";
 import OrganizationModuleRequestPage from "../pages/OrganizationModuleRequestPage";
 import SaasModuleRequestsPage from "../pages/SaasModuleRequestsPage";
+import { getTenantSlugFromHost } from "../utils/tenant";
 
 function AppRouter() {
+  const tenantSlug = getTenantSlugFromHost();
+  const isTenant = !!tenantSlug;
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<PublicLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/request-organization" element={<OrganizationRequestPage />} />
-          <Route path="/organizations" element={<OrganizationsPage />} />
-          
-        </Route>
-        <Route path="/saas" element={<SaasDashboardPage />} />
-        <Route path="/saas/organizations/:slug" element={<SaasOrganizationDetailsPage />} />
-        <Route path="/saas/organizations/:slug/modules" element={<SaasManageModulesPage />} />
-        <Route path="/saas/module-requests" element={<SaasModuleRequestsPage />} />
+        {!isTenant ? (
+          <>
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/request-organization" element={<OrganizationRequestPage />} />
+              <Route path="/organizations" element={<OrganizationsPage />} />
+            </Route>
 
+            <Route path="/saas" element={<SaasDashboardPage />} />
+            <Route path="/saas/organizations/:slug" element={<SaasOrganizationDetailsPage />} />
+            <Route path="/saas/organizations/:slug/modules" element={<SaasManageModulesPage />} />
+            <Route path="/saas/module-requests" element={<SaasModuleRequestsPage />} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<OrganizationLayout />}>
+              <Route index element={<OrganizationDetailsPage />} />
+            </Route>
 
-        <Route path="/organizations/:slug/backoffice" element={<OrganizationBackOfficePage />} />
-        <Route path="/organizations/:slug/backoffice/modules"element={<OrganizationManageModulesPage />}/>
-        <Route path="/organizations/:slug/backoffice/design" element={<OrganizationDesignPage />}/>
-        <Route path="/organizations/:slug/backoffice/module-requests" element={<OrganizationModuleRequestPage />}/>
-
-
-
-        <Route path="/organizations/:slug" element={<OrganizationLayout />}>
-          <Route index element={<OrganizationDetailsPage />} />
-          
-        </Route>
+            <Route path="/backoffice" element={<OrganizationBackOfficePage />} />
+            <Route path="/backoffice/modules" element={<OrganizationManageModulesPage />} />
+            <Route path="/backoffice/design" element={<OrganizationDesignPage />} />
+            <Route path="/backoffice/module-requests" element={<OrganizationModuleRequestPage />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
   );
