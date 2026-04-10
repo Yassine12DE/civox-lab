@@ -1,7 +1,8 @@
 import API_BASE_URL from "./api";
+import { getAccessToken } from "../utils/tokenStorage";
 
 export async function getSaasOrganizations() {
-  const response = await fetch(`${API_BASE_URL}/saas/organizations`);
+  const response = await fetchWithAuth(`${API_BASE_URL}/saas/organizations`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch SaaS organizations");
@@ -16,7 +17,7 @@ export async function getSaasOrganizationBySlug(slug) {
 }
 
 export async function getSaasOrganizationModules(organizationId) {
-  const response = await fetch(`${API_BASE_URL}/saas/organizations/${organizationId}/modules`);
+  const response = await fetchWithAuth(`${API_BASE_URL}/saas/organizations/${organizationId}/modules`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch organization modules");
@@ -26,7 +27,7 @@ export async function getSaasOrganizationModules(organizationId) {
 }
 
 export async function grantModuleToOrganization(organizationId, moduleCode) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_BASE_URL}/saas/organizations/${organizationId}/modules/${moduleCode}`,
     {
       method: "POST",
@@ -41,7 +42,7 @@ export async function grantModuleToOrganization(organizationId, moduleCode) {
 }
 
 export async function removeModuleFromOrganization(organizationId, moduleCode) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_BASE_URL}/saas/organizations/${organizationId}/modules/${moduleCode}`,
     {
       method: "DELETE",
@@ -56,7 +57,7 @@ export async function removeModuleFromOrganization(organizationId, moduleCode) {
 }
 
 export async function getAllModuleRequests() {
-  const response = await fetch(`${API_BASE_URL}/saas/module-requests`);
+  const response = await fetchWithAuth(`${API_BASE_URL}/saas/module-requests`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch module requests");
@@ -67,7 +68,7 @@ export async function getAllModuleRequests() {
 
 export async function approveModuleRequest(requestId, comment = "") {
   const query = comment ? `?comment=${encodeURIComponent(comment)}` : "";
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_BASE_URL}/saas/module-requests/${requestId}/approve${query}`,
     {
       method: "POST",
@@ -83,7 +84,7 @@ export async function approveModuleRequest(requestId, comment = "") {
 
 export async function rejectModuleRequest(requestId, comment = "") {
   const query = comment ? `?comment=${encodeURIComponent(comment)}` : "";
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `${API_BASE_URL}/saas/module-requests/${requestId}/reject${query}`,
     {
       method: "POST",
@@ -95,4 +96,17 @@ export async function rejectModuleRequest(requestId, comment = "") {
   }
 
   return await response.json();
+}
+
+function fetchWithAuth(url, options = {}) {
+  const token = getAccessToken();
+  const headers = {
+    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
 }

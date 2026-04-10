@@ -1,0 +1,114 @@
+.tenant-login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.tenant-login-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  color: white;
+}
+
+.tenant-login-left h1 {
+  font-size: 42px;
+  margin-bottom: 16px;
+}
+
+.tenant-login-left p {
+  font-size: 18px;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.tenant-login-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  background: white;
+  border-radius: 16px;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+.tenant-login-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.tenant-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.tenant-login-card h2 {
+  margin-bottom: 8px;
+}
+
+.tenant-login-subtitle {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.tenant-login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.tenant-login-form input {
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.tenant-login-form button {
+  padding: 14px 16px;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tenant-login-error {
+  color: crimson;
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.tenant-login-footer {
+  text-align: center;
+  margin-top: 22px;
+  color: #888;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .tenant-login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .tenant-login-left {
+    padding: 40px 24px 10px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .tenant-login-left h1 {
+    font-size: 32px;
+  }
+
+  .tenant-login-right {
+    padding: 20px 24px 40px;
+  }
+}

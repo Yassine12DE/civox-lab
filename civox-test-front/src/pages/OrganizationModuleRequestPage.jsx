@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { modules } from "../data/modules";
-import { getCurrentOrganization } from "../services/organizationService";
 import {
   createModuleRequest,
   getOrganizationBackOfficeModules,
@@ -10,38 +9,36 @@ import {
 import "../styles/organizationModuleRequestPage.css";
 
 function OrganizationModuleRequestPage() {
-  const { slug } = useParams();
-  const [organization, setOrganization] = useState(null);
+  const { organization } = useOutletContext();
   const [grantedModules, setGrantedModules] = useState([]);
   const [requests, setRequests] = useState([]);
   const [selectedModule, setSelectedModule] = useState("");
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!organization?.id) return;
+
     try {
-      const org = await getCurrentOrganization();
-      setOrganization(org);
+      const [modulesData, requestsData] = await Promise.all([
+        getOrganizationBackOfficeModules(organization.id),
+        getOrganizationModuleRequests(organization.id),
+      ]);
 
-      if (org?.id) {
-        const [modulesData, requestsData] = await Promise.all([
-          getOrganizationBackOfficeModules(org.id),
-          getOrganizationModuleRequests(org.id),
-        ]);
-
-        setGrantedModules(modulesData);
-        setRequests(requestsData);
-      }
+      setGrantedModules(modulesData);
+      setRequests(requestsData);
     } catch (error) {
       console.error(error);
+      setError(error.message || "Failed to load module requests");
     } finally {
       setLoading(false);
     }
-  };
+  }, [organization?.id]);
 
   useEffect(() => {
     loadData();
-  }, [slug]);
+  }, [loadData]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -71,6 +68,7 @@ function OrganizationModuleRequestPage() {
         <p className="org-module-request-badge">Extra Module Requests</p>
         <h1>{organization.name}</h1>
         <p>Request missing modules from the Back-office SaaS.</p>
+        {error && <p className="org-module-request-error">{error}</p>}
       </section>
 
       <div className="org-module-request-grid">

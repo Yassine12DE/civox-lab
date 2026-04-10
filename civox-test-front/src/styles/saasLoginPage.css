@@ -1,0 +1,78 @@
+.saas-login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: linear-gradient(135deg, #0b5d4f, #263238 55%, #6b2f4f);
+  color: #ffffff;
+}
+
+.saas-login-panel {
+  width: min(100%, 460px);
+  padding: 32px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #17202a;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+}
+
+.saas-login-badge {
+  margin: 0 0 10px;
+  color: #0b806c;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.saas-login-panel h1 {
+  margin: 0;
+  font-size: 3.4rem;
+  line-height: 1;
+}
+
+.saas-login-text,
+.saas-login-public-link {
+  color: #53605e;
+}
+
+.saas-login-form {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0 14px;
+}
+
+.saas-login-form label {
+  font-weight: 700;
+}
+
+.saas-login-form input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #cbd6d3;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.saas-login-form button {
+  margin-top: 8px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #0b806c;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.saas-login-error {
+  color: #b42318;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .saas-login-panel h1 {
+    font-size: 2rem;
+  }
+}

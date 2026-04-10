@@ -12,7 +12,7 @@ function OrganizationsPage() {
    try {
     const data = await getPublicOrganizations();
     setOrganizations(data);
-   } catch (err) {
+   } catch {
     setError("Failed to load organizations.");
    } finally {
     setLoading(false);

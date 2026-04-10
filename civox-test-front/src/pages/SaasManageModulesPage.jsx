@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { modules } from "../data/modules";
 import {
@@ -15,7 +15,7 @@ function SaasManageModulesPage() {
   const [grantedModules, setGrantedModules] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const org = await getSaasOrganizationBySlug(slug);
       setOrganization(org);
@@ -29,11 +29,11 @@ function SaasManageModulesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
   useEffect(() => {
     loadData();
-  }, [slug]);
+  }, [loadData]);
 
   const handleToggleModule = async (moduleCode, isGranted) => {
     if (!organization?.id) return;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getCurrentOrganization } from "../services/organizationService";
+import { useOutletContext } from "react-router-dom";
 import {
   getOrganizationSettings,
   updateOrganizationSettings,
@@ -8,27 +7,26 @@ import {
 import "../styles/organizationDesignPage.css";
 
 function OrganizationDesignPage() {
-  const { slug } = useParams();
-  const [organization, setOrganization] = useState(null);
+  const { organization, settings: layoutSettings } = useOutletContext();
   const [formData, setFormData] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const org = await getCurrentOrganization();
-        setOrganization(org);
+      if (!organization?.id) return;
 
-        if (org?.id) {
-          const settings = await getOrganizationSettings(org.id);
-          setFormData(settings);
-        }
+      try {
+        setFormData(layoutSettings);
+        const settings = await getOrganizationSettings(organization.id);
+        setFormData(settings);
       } catch (error) {
         console.error(error);
+        setError(error.message || "Failed to load design settings");
       }
     };
 
     loadData();
-  }, [slug]);
+  }, [organization?.id, layoutSettings]);
 
   if (!organization || !formData) {
     return (
@@ -69,6 +67,7 @@ function OrganizationDesignPage() {
         <p className="org-design-badge">Front-office Design</p>
         <h1>Customize {organization.name}</h1>
         <p>Update the branding and content of your organization front-office.</p>
+        {error && <p className="org-design-error">{error}</p>}
       </section>
 
       <div className="org-design-grid">

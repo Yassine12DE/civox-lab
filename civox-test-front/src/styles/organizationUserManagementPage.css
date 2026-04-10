@@ -1,0 +1,122 @@
+.org-users-page {
+  padding: 28px 0 56px;
+  color: #182421;
+}
+
+.org-users-hero {
+  padding: 32px;
+  border-radius: 8px;
+  background: #ffffff;
+  border-left: 6px solid var(--org-primary);
+}
+
+.org-users-badge {
+  margin: 0 0 10px;
+  color: var(--org-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.org-users-hero h1 {
+  margin: 0 0 12px;
+  font-size: 4rem;
+  line-height: 1.03;
+}
+
+.org-users-hero p,
+.org-users-row p,
+.org-users-row small {
+  color: #53605e;
+  line-height: 1.65;
+}
+
+.org-users-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.45fr);
+  gap: 22px;
+  margin-top: 24px;
+}
+
+.org-users-form,
+.org-users-list,
+.org-users-row {
+  padding: 24px;
+  border: 1px solid #dbe4e1;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.org-users-form {
+  display: grid;
+  gap: 10px;
+  align-self: start;
+}
+
+.org-users-form label {
+  font-weight: 800;
+}
+
+.org-users-form input,
+.org-users-form select {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #cbd6d3;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.org-users-form button,
+.org-users-row button {
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--org-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.org-users-table {
+  display: grid;
+  gap: 14px;
+}
+
+.org-users-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.org-users-row h3,
+.org-users-row p {
+  margin: 0 0 6px;
+}
+
+.org-users-success {
+  color: #087443;
+  font-weight: 800;
+}
+
+.org-users-error {
+  color: #b42318;
+  font-weight: 800;
+}
+
+@media (max-width: 820px) {
+  .org-users-hero h1 {
+    font-size: 2rem;
+  }
+
+  .org-users-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .org-users-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

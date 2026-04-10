@@ -23,10 +23,18 @@
   gap: 18px;
 }
 
+.organization-header-topline {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 .organization-brand {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+  text-decoration: none;
 }
 
 .organization-brand-logo {
@@ -57,6 +65,10 @@
   margin: 0;
   color: #798ca7;
   font-size: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .organization-nav {
@@ -82,5 +94,13 @@
 @media (max-width: 700px) {
   .organization-header-container {
     padding: 14px 16px;
+  }
+
+  .organization-header-topline {
+    align-items: flex-start;
+  }
+
+  .organization-brand p {
+    display: none;
   }
 }

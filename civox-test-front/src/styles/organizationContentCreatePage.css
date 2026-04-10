@@ -1,0 +1,128 @@
+.org-content-create-page {
+  padding: 28px 0 56px;
+  color: #182421;
+}
+
+.org-content-create-hero {
+  padding: 32px;
+  border-radius: 8px;
+  background: #ffffff;
+  border-left: 6px solid var(--org-primary);
+}
+
+.org-content-create-badge {
+  margin: 0 0 10px;
+  color: var(--org-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.org-content-create-hero h1 {
+  margin: 0 0 12px;
+  font-size: 4rem;
+  line-height: 1.03;
+}
+
+.org-content-create-hero p,
+.org-content-create-list p,
+.org-content-create-item small {
+  color: #53605e;
+  line-height: 1.7;
+}
+
+.org-content-create-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 22px;
+  margin-top: 24px;
+}
+
+.org-content-create-form,
+.org-content-create-list,
+.org-content-create-item {
+  padding: 24px;
+  border: 1px solid #dbe4e1;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.org-content-create-form {
+  display: grid;
+  gap: 10px;
+  align-self: start;
+}
+
+.org-content-create-form label {
+  font-weight: 800;
+}
+
+.org-content-create-form input,
+.org-content-create-form textarea {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #cbd6d3;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.org-content-create-form button,
+.org-content-create-link {
+  display: inline-flex;
+  justify-content: center;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--org-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.org-content-create-list {
+  display: grid;
+  gap: 14px;
+}
+
+.org-content-create-item h3 {
+  margin: 0 0 8px;
+}
+
+.org-content-create-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.org-content-create-options span {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #eef5f3;
+  color: #182421;
+  font-weight: 700;
+}
+
+.org-content-create-success {
+  color: #087443;
+  font-weight: 800;
+}
+
+.org-content-create-error {
+  color: #b42318;
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .org-content-create-hero h1 {
+    font-size: 2rem;
+  }
+
+  .org-content-create-grid {
+    grid-template-columns: 1fr;
+  }
+}

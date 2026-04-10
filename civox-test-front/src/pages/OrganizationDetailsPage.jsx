@@ -1,4 +1,5 @@
-import { useOutletContext } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
+import { getModuleRoute } from "../utils/moduleNavigation";
 import "../styles/organizationDetailsPage.css";
 
 function OrganizationDetailsPage() {
@@ -21,8 +22,8 @@ function OrganizationDetailsPage() {
           <p className="org-home-text">{settings.welcomeText || organization.description}</p>
 
           <div className="org-home-actions">
-            <button className="org-home-primary-btn">Explore Space</button>
-            <button className="org-home-secondary-btn">Learn More</button>
+            <a className="org-home-primary-btn" href="#available-modules">Explore Space</a>
+            <a className="org-home-secondary-btn" href="#about-organization">Learn More</a>
           </div>
         </div>
 
@@ -49,24 +50,31 @@ function OrganizationDetailsPage() {
         </div>
       </section>
 
-      <section className="org-home-section">
+      <section className="org-home-section" id="available-modules">
         <div className="org-home-section-header">
           <h2>Available Modules</h2>
           <p>Only modules granted to this organization appear here.</p>
         </div>
 
         <div className="org-home-modules-grid">
-          {modules.map((module) => (
+          {modules.length > 0 ? modules.map((module) => (
             <div key={module.id} className="org-home-module-card">
               <h3>{module.moduleName}</h3>
               <p>{module.moduleDescription}</p>
-              <button className="org-home-module-btn">Open Module</button>
+              <Link to={getModuleRoute(module.moduleCode)} className="org-home-module-btn">
+                Open Module
+              </Link>
             </div>
-          ))}
+          )) : (
+            <div className="org-home-module-card">
+              <h3>No modules are enabled yet</h3>
+              <p>Enabled organization modules will appear here as soon as they are available.</p>
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="org-home-section">
+      <section className="org-home-section" id="about-organization">
         <div className="org-home-info-box">
           <h2>About {organization.name}</h2>
           <p>{organization.description}</p>

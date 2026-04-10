@@ -1,0 +1,149 @@
+.org-module-page {
+  display: grid;
+  gap: 28px;
+  padding: 28px 0 56px;
+}
+
+.org-module-panel,
+.org-module-info {
+  padding: 32px;
+  border: 1px solid #dbe4e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #182421;
+}
+
+.org-module-panel {
+  border-top: 6px solid var(--org-primary);
+}
+
+.org-module-badge {
+  margin: 0 0 10px;
+  color: var(--org-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.org-module-panel h1 {
+  margin: 0 0 14px;
+  font-size: 4rem;
+  line-height: 1.03;
+}
+
+.org-module-panel p,
+.org-module-info p {
+  color: #53605e;
+  line-height: 1.7;
+}
+
+.org-module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.org-module-primary-link,
+.org-module-link {
+  display: inline-flex;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.org-module-primary-link {
+  background: var(--org-primary);
+  color: #ffffff;
+}
+
+.org-module-link {
+  border: 1px solid var(--org-primary);
+  color: var(--org-primary);
+}
+
+.org-module-empty {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+
+.org-module-error {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.org-module-content-list {
+  display: grid;
+  gap: 18px;
+}
+
+.org-module-content-item {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid #dbe4e1;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.org-module-content-item h3 {
+  margin: 0 0 10px;
+  color: #182421;
+  font-size: 1.35rem;
+}
+
+.org-module-content-item p {
+  margin: 0;
+}
+
+.org-module-content-meta {
+  margin: 0 0 8px;
+  color: var(--org-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.org-module-response-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.org-module-response-group button {
+  border: 1px solid #c7d6d2;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  color: #182421;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.org-module-response-group button:hover,
+.org-module-response-group button.is-selected {
+  border-color: var(--org-primary);
+  background: var(--org-primary);
+  color: #ffffff;
+}
+
+.org-module-response-group button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.org-module-response-group small {
+  color: #53605e;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .org-module-panel h1 {
+    font-size: 2rem;
+  }
+}

@@ -8,18 +8,24 @@
   max-width: 1200px;
   margin: 0 auto 30px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid color-mix(in srgb, var(--org-primary) 20%, #e2e8f0);
   border-radius: 24px;
   padding: 32px;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.05);
 }
 
 .org-module-request-badge {
-  color: #4f46e5;
+  color: var(--org-primary);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 12px;
+}
+
+.org-module-request-error {
+  color: #b91c1c;
+  font-weight: 700;
+  margin-top: 14px;
 }
 
 .org-module-request-grid {
@@ -32,7 +38,7 @@
 
 .org-module-request-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid color-mix(in srgb, var(--org-primary) 20%, #e2e8f0);
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.05);
@@ -59,7 +65,7 @@
   padding: 12px 16px;
   font-weight: 600;
   cursor: pointer;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  background: linear-gradient(135deg, var(--org-primary), var(--org-secondary));
   color: white;
 }
 
@@ -69,7 +75,7 @@
 }
 
 .org-module-request-item {
-  border: 1px solid #e2e8f0;
+  border: 1px solid color-mix(in srgb, var(--org-primary) 20%, #e2e8f0);
   border-radius: 16px;
   padding: 16px;
 }

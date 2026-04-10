@@ -13,7 +13,7 @@ function SaasDashboardPage() {
       try {
         const data = await getSaasOrganizations();
         setOrganizations(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load organizations.");
       } finally {
         setLoading(false);
