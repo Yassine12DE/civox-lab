@@ -3,76 +3,275 @@
   display: grid;
   place-items: center;
   padding: 32px 20px;
-  background: linear-gradient(135deg, #0b5d4f, #263238 55%, #6b2f4f);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 107, 53, 0.18), transparent 28%),
+    radial-gradient(circle at 12% 12%, rgba(157, 78, 221, 0.22), transparent 32%),
+    linear-gradient(135deg, #12091c, #241331 55%, #38155c);
   color: #ffffff;
 }
 
-.saas-login-panel {
-  width: min(100%, 460px);
-  padding: 32px;
+.saas-login-shell {
+  width: min(100%, 1040px);
+  min-height: 640px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
-  background: #ffffff;
-  color: #17202a;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
+  overflow: hidden;
+}
+
+.saas-login-brand-panel {
+  position: relative;
+  background:
+    linear-gradient(145deg, rgba(90, 24, 154, 0.92), rgba(123, 44, 191, 0.82)),
+    var(--civox-purple-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 34px;
+}
+
+.saas-login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.saas-login-brand span {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--civox-orange);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  box-shadow: 0 14px 26px rgba(255, 107, 53, 0.26);
+}
+
+.saas-login-brand strong {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.saas-login-brand-copy {
+  max-width: 520px;
+  margin-top: auto;
 }
 
 .saas-login-badge {
-  margin: 0 0 10px;
-  color: #0b806c;
+  margin: 0 0 12px;
+  color: #ffd6c7;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.saas-login-panel h1 {
+.saas-login-brand-copy h1 {
   margin: 0;
-  font-size: 3.4rem;
-  line-height: 1;
+  font-size: 44px;
+  line-height: 1.05;
 }
 
-.saas-login-text,
-.saas-login-public-link {
-  color: #53605e;
+.saas-login-brand-copy p:not(.saas-login-badge) {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 16px;
+  line-height: 1.75;
+  margin-top: 18px;
+}
+
+.saas-login-visual {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  min-height: 168px;
+  overflow: hidden;
+}
+
+.saas-login-visual img {
+  width: min(72%, 260px);
+  filter: drop-shadow(0 22px 30px rgba(0, 0, 0, 0.2));
+}
+
+.saas-login-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.saas-login-highlights span {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.saas-login-panel {
+  background: #ffffff;
+  color: var(--civox-ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px;
+}
+
+.saas-login-panel-header {
+  margin-bottom: 24px;
+}
+
+.saas-login-panel-header .saas-login-badge {
+  color: var(--civox-orange-dark);
+}
+
+.saas-login-panel h2 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+}
+
+.saas-login-panel-header p:not(.saas-login-badge),
+.saas-login-public-link,
+.saas-login-options {
+  color: var(--civox-muted);
+}
+
+.saas-login-panel-header p:not(.saas-login-badge) {
+  line-height: 1.65;
+  margin-top: 12px;
 }
 
 .saas-login-form {
   display: grid;
-  gap: 10px;
-  margin: 24px 0 14px;
+  gap: 16px;
+}
+
+.saas-login-field {
+  display: grid;
+  gap: 7px;
 }
 
 .saas-login-form label {
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 900;
 }
 
-.saas-login-form input {
+.saas-login-form input[type="email"],
+.saas-login-form input[type="password"] {
   width: 100%;
   padding: 13px 14px;
-  border: 1px solid #cbd6d3;
+  border: 1px solid var(--civox-border);
   border-radius: 8px;
-  font: inherit;
+  color: var(--civox-ink);
+  background: #ffffff;
+  outline: 0;
+}
+
+.saas-login-form input:focus {
+  border-color: var(--civox-purple);
+  box-shadow: 0 0 0 3px rgba(123, 44, 191, 0.14);
+}
+
+.saas-login-options {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.saas-login-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--civox-ink);
+}
+
+.saas-login-options input {
+  accent-color: var(--civox-purple);
 }
 
 .saas-login-form button {
-  margin-top: 8px;
+  margin-top: 4px;
+  min-height: 46px;
   padding: 13px 18px;
   border: 0;
   border-radius: 8px;
-  background: #0b806c;
+  background: var(--civox-purple);
   color: #ffffff;
   cursor: pointer;
   font: inherit;
-  font-weight: 800;
+  font-weight: 900;
+  box-shadow: 0 14px 28px rgba(123, 44, 191, 0.2);
+}
+
+.saas-login-form button:hover:not(:disabled) {
+  background: var(--civox-purple-dark);
+}
+
+.saas-login-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .saas-login-error {
-  color: #b42318;
-  font-weight: 700;
+  border: 1px solid #ffd1bf;
+  border-radius: 8px;
+  background: var(--civox-soft-orange);
+  color: var(--civox-orange-dark);
+  font-weight: 900;
+  line-height: 1.45;
+  margin: 0 0 18px;
+  padding: 12px;
+}
+
+.saas-login-public-link {
+  width: fit-content;
+  margin-top: 22px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.saas-login-public-link:hover {
+  color: var(--civox-purple-dark);
+}
+
+@media (max-width: 900px) {
+  .saas-login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .saas-login-brand-panel {
+    min-height: 440px;
+  }
 }
 
 @media (max-width: 640px) {
-  .saas-login-panel h1 {
-    font-size: 2rem;
+  .saas-login-page {
+    padding: 18px;
+  }
+
+  .saas-login-brand-panel,
+  .saas-login-panel {
+    padding: 28px 22px;
+  }
+
+  .saas-login-brand-copy h1 {
+    font-size: 32px;
+  }
+
+  .saas-login-panel h2 {
+    font-size: 28px;
   }
 }

@@ -8,7 +8,10 @@ function PublicLayout() {
         <div className="public-header-container">
           <Link to="/" className="public-brand">
             <span className="public-brand-logo">C</span>
-            <span className="public-brand-text">Civox</span>
+            <span>
+              <span className="public-brand-text">Civox</span>
+              <span className="public-brand-subtitle">Civic SaaS platform</span>
+            </span>
           </Link>
 
           <nav className="public-nav">
@@ -19,7 +22,7 @@ function PublicLayout() {
               Organizations
             </Link>
             <Link to="/request-organization" className="public-nav-cta">
-              Request Access
+              Join us now
             </Link>
           </nav>
         </div>

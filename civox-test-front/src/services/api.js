@@ -1,5 +1,14 @@
-const API_BASE_URL = `http://${window.location.hostname}:8081`;
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const API_BASE_URL = (configuredApiBaseUrl || resolveLocalApiBaseUrl()).replace(/\/+$/, "");
 
-console.log("API_BASE_URL =", API_BASE_URL);
+function resolveLocalApiBaseUrl() {
+  const { hostname } = window.location;
+
+  if (hostname === "lvh.me") {
+    return "http://localhost:8081";
+  }
+
+  return `http://${hostname}:8081`;
+}
 
 export default API_BASE_URL;

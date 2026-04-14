@@ -2,11 +2,15 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import HomePage from "../pages/HomePage";
 import OrganizationRequestPage from "../pages/OrganizationRequestPage";
+import PaymentPage from "../pages/PaymentPage";
+import PaymentSuccessPage from "../pages/PaymentSuccessPage";
 import OrganizationsPage from "../pages/OrganizationsPage";
 import OrganizationDetailsPage from "../pages/OrganizationDetailsPage";
 import PublicLayout from "../layouts/PublicLayout";
 import OrganizationLayout from "../layouts/OrganizationLayout";
+import SaasLayout from "../layouts/SaasLayout";
 import SaasDashboardPage from "../pages/SaasDashboardPage";
+import SaasOrganizationsPage from "../pages/SaasOrganizationsPage";
 import SaasOrganizationDetailsPage from "../pages/SaasOrganizationDetailsPage";
 import SaasManageModulesPage from "../pages/SaasManageModulesPage";
 import OrganizationBackOfficePage from "../pages/OrganizationBackOfficePage";
@@ -14,6 +18,7 @@ import OrganizationManageModulesPage from "../pages/OrganizationManageModulesPag
 import OrganizationDesignPage from "../pages/OrganizationDesignPage";
 import OrganizationModuleRequestPage from "../pages/OrganizationModuleRequestPage";
 import SaasModuleRequestsPage from "../pages/SaasModuleRequestsPage";
+import SaasOrganizationRequestsPage from "../pages/SaasOrganizationRequestsPage";
 import SaasLoginPage from "../pages/SaasLoginPage";
 import TenantLoginPage from "../pages/TenantLoginPage";
 import TenantMyInfoPage from "../pages/TenantMyInfoPage";
@@ -22,6 +27,7 @@ import ForbiddenPage from "../pages/ForbiddenPage";
 import OrganizationUserManagementPage from "../pages/OrganizationUserManagementPage";
 import OrganizationModulePage from "../pages/OrganizationModulePage";
 import OrganizationContentCreatePage from "../pages/OrganizationContentCreatePage";
+import SaasPlaceholderPage from "../pages/SaasPlaceholderPage";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { getTenantSlugFromHost } from "../utils/tenant";
 import { getAccessToken } from "../utils/tokenStorage";
@@ -53,6 +59,8 @@ function AppRouter() {
               <Route path="/" element={<HomePage />} />
               <Route path="/request-organization" element={<OrganizationRequestPage />} />
               <Route path="/organizations" element={<OrganizationsPage />} />
+              <Route path="/payment/:token" element={<PaymentPage />} />
+              <Route path="/payment/:token/success" element={<PaymentSuccessPage />} />
             </Route>
 
             <Route path="/saas/login" element={<SaasLoginPage />} />
@@ -62,34 +70,61 @@ function AppRouter() {
               path="/saas"
               element={
                 <ProtectedRoute allowedRoles={saasRoles} loginPath="/saas/login">
-                  <SaasDashboardPage />
+                  <SaasLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/saas/organizations/:slug"
-              element={
-                <ProtectedRoute allowedRoles={saasRoles} loginPath="/saas/login">
-                  <SaasOrganizationDetailsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/saas/organizations/:slug/modules"
-              element={
-                <ProtectedRoute allowedRoles={saasRoles} loginPath="/saas/login">
-                  <SaasManageModulesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/saas/module-requests"
-              element={
-                <ProtectedRoute allowedRoles={saasRoles} loginPath="/saas/login">
-                  <SaasModuleRequestsPage />
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route index element={<SaasDashboardPage />} />
+              <Route path="organizations" element={<SaasOrganizationsPage />} />
+              <Route path="organizations/:slug" element={<SaasOrganizationDetailsPage />} />
+              <Route path="organizations/:slug/modules" element={<SaasManageModulesPage />} />
+              <Route path="requests" element={<SaasOrganizationRequestsPage />} />
+              <Route path="module-requests" element={<SaasModuleRequestsPage />} />
+              <Route
+                path="plans"
+                element={
+                  <SaasPlaceholderPage
+                    eyebrow="Subscriptions"
+                    title="Plans"
+                    description="Prepare SaaS package, billing, and subscription controls for future platform operations."
+                    icon="billing"
+                  />
+                }
+              />
+              <Route
+                path="users"
+                element={
+                  <SaasPlaceholderPage
+                    eyebrow="Access overview"
+                    title="Global Users"
+                    description="A future overview for users, roles, and cross-tenant access signals."
+                    icon="users"
+                  />
+                }
+              />
+              <Route
+                path="activity"
+                element={
+                  <SaasPlaceholderPage
+                    eyebrow="Audit"
+                    title="Audit Log"
+                    description="A future platform trail for sensitive administrative actions and system events."
+                    icon="activity"
+                  />
+                }
+              />
+              <Route
+                path="settings"
+                element={
+                  <SaasPlaceholderPage
+                    eyebrow="Platform"
+                    title="Settings"
+                    description="A future control center for global defaults, security, and platform preferences."
+                    icon="settings"
+                  />
+                }
+              />
+            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </>

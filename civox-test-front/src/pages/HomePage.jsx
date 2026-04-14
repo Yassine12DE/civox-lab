@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import CivoxHeroIllustration from "../components/CivoxHeroIllustration";
 import "../styles/homePage.css";
 
 function HomePage() {
@@ -6,16 +7,13 @@ function HomePage() {
     <div className="home-page">
       <section className="home-hero">
         <div className="home-left">
-          <p className="home-badge">Welcome to Civox</p>
+          <p className="home-badge">Civox civic SaaS platform</p>
 
-          <h1 className="home-title">
-            A modern multi-tenant platform for organizations
-          </h1>
+          <h1 className="home-title">Give every organization a clear digital home</h1>
 
           <p className="home-description">
-            Civox helps organizations join one shared platform while keeping
-            each organization’s space, users, and future data clearly separated
-            and secure.
+            Civox brings public organizations into one professional platform while
+            keeping each tenant workspace, user base, and module access organized.
           </p>
 
           <div className="home-actions">
@@ -24,43 +22,38 @@ function HomePage() {
             </Link>
 
             <Link to="/request-organization" className="secondary-button">
-              Request access
+              Join us now
             </Link>
           </div>
         </div>
 
         <div className="home-card">
+          <div className="home-visual">
+            <CivoxHeroIllustration />
+          </div>
+
           <div className="home-card-header">
-            <h2>One platform, multiple organizations</h2>
+            <h2>One platform. Many secure spaces.</h2>
             <p>
-              Each organization can have its own public presence and later its
-              own dedicated tenant space on Civox.
+              Public pages, tenant modules, and platform administration stay
+              separated without making the experience feel fragmented.
             </p>
           </div>
 
           <div className="home-features">
             <div className="feature-card">
               <h3>Organization onboarding</h3>
-              <p>
-                Organizations can request to join the platform through a public
-                registration flow.
-              </p>
+              <p>Collect structured access requests and prepare each tenant for review.</p>
             </div>
 
             <div className="feature-card">
               <h3>Public organization directory</h3>
-              <p>
-                Guests can browse public organizations and access their public
-                pages.
-              </p>
+              <p>Help visitors find registered organizations and open their public spaces.</p>
             </div>
 
             <div className="feature-card">
-              <h3>Future tenant separation</h3>
-              <p>
-                Each organization will later access its own secure space with
-                isolated users and data.
-              </p>
+              <h3>Tenant separation</h3>
+              <p>Keep users, modules, and data scoped to the right organization.</p>
             </div>
           </div>
         </div>
@@ -68,24 +61,35 @@ function HomePage() {
 
       <section className="stats-section">
         <div className="stats-card">
-          <h3>01</h3>
-          <p>Public Civox homepage for guests and organizations</p>
+          <h3>Public</h3>
+          <p>Clear public entry points for citizens, guests, and organizations.</p>
         </div>
 
         <div className="stats-card">
-          <h3>02</h3>
-          <p>Organization request flow before approval</p>
+          <h3>Review</h3>
+          <p>Structured organization requests before platform activation.</p>
         </div>
 
         <div className="stats-card">
-          <h3>03</h3>
-          <p>Directory of organizations visible to the public</p>
+          <h3>Tenant</h3>
+          <p>Organization spaces designed for isolated users and modules.</p>
         </div>
 
         <div className="stats-card">
-          <h3>04</h3>
-          <p>Preparation for future organization-specific spaces</p>
+          <h3>SaaS</h3>
+          <p>Platform-level control for super admins and product owners.</p>
         </div>
+      </section>
+
+      <section className="home-cta-section">
+        <div>
+          <p className="home-badge">Ready to join</p>
+          <h2>Bring your organization into Civox</h2>
+          <p>Submit a request and give your team a structured, secure digital workspace.</p>
+        </div>
+        <Link to="/request-organization" className="primary-button primary-button--orange">
+          Join us now
+        </Link>
       </section>
     </div>
   );
