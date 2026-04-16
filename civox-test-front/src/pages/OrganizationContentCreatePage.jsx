@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
 import {
+  OrgIcon,
+  OrganizationEmptyState,
+  OrganizationLoadingState,
+  OrganizationNotice,
+  PremiumStatCard,
+  PremiumStatusBadge,
+} from "../components/organization/OrganizationUi";
+import {
   createOrganizationContent,
   getOrganizationContent,
 } from "../services/orgBackOfficeService";
-import "../styles/organizationContentCreatePage.css";
 
 const CONTENT_CONFIG = {
   vote: {
@@ -20,10 +27,10 @@ const CONTENT_CONFIG = {
   concertation: {
     moduleCode: "CONFERENCE",
     apiType: "concertation",
-    title: "Create a concertation",
+    title: "Create a consultation",
     titleLabel: "Topic",
     bodyLabel: "Participation brief",
-    submitLabel: "Publish concertation",
+    submitLabel: "Publish consultation",
     titlePlaceholder: "Neighborhood mobility plan",
   },
   "youth-news": {
@@ -68,8 +75,8 @@ function OrganizationContentCreatePage() {
       setLoading(true);
       const data = await getOrganizationContent(organization.id, config.apiType);
       setItems(data);
-    } catch (err) {
-      setError(err.message || "Failed to load content");
+    } catch (loadError) {
+      setError(loadError.message || "Failed to load content");
     } finally {
       setLoading(false);
     }
@@ -103,60 +110,95 @@ function OrganizationContentCreatePage() {
       setOptionsText("Yes\nNo");
       setMessage("Published successfully.");
       await loadItems();
-    } catch (err) {
-      setError(err.message || "Failed to publish content");
+    } catch (submitError) {
+      setError(submitError.message || "Failed to publish content");
     } finally {
       setSaving(false);
     }
   };
 
   if (!config) {
-    return <div className="org-content-create-page"><h1>Unknown content type</h1></div>;
+    return (
+      <div className="premium-admin-page">
+        <OrganizationEmptyState
+          title="Unknown content type"
+          message="Open a supported content composer from Content Management."
+          actionLabel="Back-office"
+          actionTo="/backoffice"
+          icon="file"
+        />
+      </div>
+    );
   }
 
   if (!enabledModule) {
     return (
-      <div className="org-content-create-page">
-        <section className="org-content-create-hero">
-          <p className="org-content-create-badge">Module disabled</p>
-          <h1>{config.title}</h1>
-          <p>This module must be granted and visible before new content can be published.</p>
-          <Link to="/backoffice" className="org-content-create-link">Back-office</Link>
-        </section>
+      <div className="premium-admin-page">
+        <OrganizationEmptyState
+          title={config.title}
+          message="This module must be granted and visible before new content can be published."
+          actionLabel="Content Management"
+          actionTo="/backoffice/modules"
+          icon="powerOff"
+        />
       </div>
     );
   }
 
   return (
-    <div className="org-content-create-page">
-      <section className="org-content-create-hero">
-        <p className="org-content-create-badge">Back-office publishing</p>
-        <h1>{config.title}</h1>
-        <p>{enabledModule.moduleDescription}</p>
-        {message && <p className="org-content-create-success">{message}</p>}
-        {error && <p className="org-content-create-error">{error}</p>}
+    <div className="premium-admin-page">
+      <header className="premium-admin-page-header">
+        <div>
+          <h1>{config.title}</h1>
+          <p>{enabledModule.moduleDescription}</p>
+        </div>
+        <Link to="/backoffice/modules" className="premium-soft-button">
+          Back to Content
+        </Link>
+      </header>
+
+      {(message || error) && (
+        <>
+          {message && <OrganizationNotice tone="success">{message}</OrganizationNotice>}
+          {error && <OrganizationNotice tone="error">{error}</OrganizationNotice>}
+        </>
+      )}
+
+      <section className="premium-admin-stats" aria-label="Publishing summary">
+        <PremiumStatCard icon="file" label="Published items" value={String(items.length)} />
+        <PremiumStatCard icon="power" label={enabledModule.moduleName} value="Enabled" tone="secondary" />
+        <PremiumStatCard icon="layers" label="Content format" value={config.moduleCode === "VOTE" ? "Choices" : "Story"} />
+        <PremiumStatCard icon="eye" label="Visibility" value="Public" tone="secondary" />
       </section>
 
-      <div className="org-content-create-grid">
-        <form className="org-content-create-form" onSubmit={handleSubmit}>
-          <label>{config.titleLabel}</label>
-          <input
-            value={title}
-            placeholder={config.titlePlaceholder}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-          />
+      <section className="premium-form-grid">
+        <form className="premium-form-card" onSubmit={handleSubmit}>
+          <p className="org-ui-eyebrow">Composer</p>
+          <h2>Publish content</h2>
+          <p>Write clearly and publish directly into the tenant module.</p>
 
-          <label>{config.bodyLabel}</label>
-          <textarea
-            rows="6"
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            required
-          />
+          <div className="premium-field">
+            <label>{config.titleLabel}</label>
+            <input
+              value={title}
+              placeholder={config.titlePlaceholder}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+            />
+          </div>
+
+          <div className="premium-field">
+            <label>{config.bodyLabel}</label>
+            <textarea
+              rows="6"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              required
+            />
+          </div>
 
           {config.moduleCode === "VOTE" && (
-            <>
+            <div className="premium-field">
               <label>{config.optionsLabel}</label>
               <textarea
                 rows="4"
@@ -164,36 +206,66 @@ function OrganizationContentCreatePage() {
                 onChange={(event) => setOptionsText(event.target.value)}
                 required
               />
-            </>
+            </div>
           )}
 
-          <button type="submit" disabled={saving}>
+          <button type="submit" className="premium-gradient-button" disabled={saving}>
             {saving ? "Publishing..." : config.submitLabel}
           </button>
         </form>
 
-        <section className="org-content-create-list">
+        <section className="premium-preview-card">
+          <p className="org-ui-eyebrow">Archive</p>
           <h2>Recent {enabledModule.moduleName}</h2>
-          {loading ? (
-            <p>Loading...</p>
-          ) : items.length > 0 ? (
-            items.map((item) => (
-              <article key={item.id} className="org-content-create-item">
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-                {item.options?.length > 0 && (
-                  <div className="org-content-create-options">
-                    {item.options.map((option) => <span key={option}>{option}</span>)}
+          <p>Recently published items for this tenant module.</p>
+
+          <div className="premium-list" style={{ marginTop: 18 }}>
+            {loading ? (
+              <OrganizationLoadingState
+                title="Loading recent content"
+                message="Fetching the latest published items."
+              />
+            ) : items.length > 0 ? (
+              items.map((item) => (
+                <article key={item.id} className="premium-list-row">
+                  <div>
+                    <PremiumStatusBadge status="Published">Published</PremiumStatusBadge>
+                    <h3 style={{ marginTop: 10 }}>{item.title}</h3>
+                    <p>{item.body}</p>
+                    {item.options?.length > 0 && (
+                      <div className="premium-detail-header__badges" style={{ marginTop: 12, marginBottom: 0 }}>
+                        {item.options.map((option) => (
+                          <span key={option} className="premium-status premium-status--neutral">
+                            {option}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <small>{item.createdByName || "Organization staff"}</small>
                   </div>
-                )}
-                <small>{item.createdByName || "Organization staff"}</small>
-              </article>
-            ))
-          ) : (
-            <p>No published content yet.</p>
-          )}
+                </article>
+              ))
+            ) : (
+              <OrganizationEmptyState
+                title="No published content yet"
+                message="Published items will appear here after the first submission."
+                icon="file"
+              />
+            )}
+          </div>
         </section>
-      </div>
+      </section>
+
+      <section className="premium-panel">
+        <div className="premium-detail-header__badges">
+          <OrgIcon name="info" size={20} />
+          <h2>Publishing Rules</h2>
+        </div>
+        <p>
+          Content publishes into the current organization only. Visibility still depends on
+          the module being granted by SaaS and enabled in Content Management.
+        </p>
+      </section>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import process from 'node:process'
 
 const extraAllowedHosts = (process.env.VITE_ALLOWED_HOSTS || '')
   .split(',')

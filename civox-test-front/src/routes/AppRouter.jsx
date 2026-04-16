@@ -26,6 +26,7 @@ import TenantEditProfilePage from "../pages/TenantEditProfilePage";
 import ForbiddenPage from "../pages/ForbiddenPage";
 import OrganizationUserManagementPage from "../pages/OrganizationUserManagementPage";
 import OrganizationModulePage from "../pages/OrganizationModulePage";
+import OrganizationModulesPage from "../pages/OrganizationModulesPage";
 import OrganizationContentCreatePage from "../pages/OrganizationContentCreatePage";
 import SaasPlaceholderPage from "../pages/SaasPlaceholderPage";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -141,6 +142,7 @@ function AppRouter() {
             >
               <Route index element={<OrganizationDetailsPage />} />
               <Route path="forbidden" element={<ForbiddenPage />} />
+              <Route path="modules" element={<OrganizationModulesPage />} />
               <Route path="modules/:moduleSlug" element={<OrganizationModulePage />} />
               <Route
                 path="me"
@@ -183,7 +185,23 @@ function AppRouter() {
                 }
               />
               <Route
+                path="backoffice/content"
+                element={
+                  <ProtectedRoute allowedRoles={adminOnlyRoles}>
+                    <OrganizationManageModulesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="backoffice/design"
+                element={
+                  <ProtectedRoute allowedRoles={designRoles}>
+                    <OrganizationDesignPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="backoffice/settings"
                 element={
                   <ProtectedRoute allowedRoles={designRoles}>
                     <OrganizationDesignPage />

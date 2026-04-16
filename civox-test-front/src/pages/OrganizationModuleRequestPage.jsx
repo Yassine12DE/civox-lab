@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import {
+  OrgIcon,
+  OrganizationEmptyState,
+  OrganizationLoadingState,
+  OrganizationNotice,
+  PremiumStatCard,
+  PremiumStatusBadge,
+} from "../components/organization/OrganizationUi";
 import { modules } from "../data/modules";
 import {
   createModuleRequest,
   getOrganizationBackOfficeModules,
   getOrganizationModuleRequests,
 } from "../services/orgBackOfficeService";
-import "../styles/organizationModuleRequestPage.css";
 
 function OrganizationModuleRequestPage() {
   const { organization } = useOutletContext();
@@ -15,6 +22,7 @@ function OrganizationModuleRequestPage() {
   const [selectedModule, setSelectedModule] = useState("");
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const loadData = useCallback(async () => {
@@ -28,9 +36,9 @@ function OrganizationModuleRequestPage() {
 
       setGrantedModules(modulesData);
       setRequests(requestsData);
-    } catch (error) {
-      console.error(error);
-      setError(error.message || "Failed to load module requests");
+    } catch (loadError) {
+      console.error(loadError);
+      setError(loadError.message || "Failed to load module requests");
     } finally {
       setLoading(false);
     }
@@ -43,44 +51,67 @@ function OrganizationModuleRequestPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!organization?.id || !selectedModule) return;
+    setError("");
+    setMessage("");
 
     try {
       await createModuleRequest(organization.id, selectedModule, comment);
       setSelectedModule("");
       setComment("");
       await loadData();
-      alert("Module request submitted successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to submit request");
+      setMessage("Module request submitted successfully.");
+    } catch (submitError) {
+      console.error(submitError);
+      setError(submitError.message || "Failed to submit request");
     }
   };
 
-  if (loading) return <div className="org-module-request-page"><h1>Loading...</h1></div>;
-  if (!organization) return <div className="org-module-request-page"><h1>Organization not found</h1></div>;
+  if (loading) {
+    return (
+      <div className="premium-empty-center">
+        <OrganizationLoadingState
+          title="Loading module requests"
+          message="Fetching current grants and request history."
+        />
+      </div>
+    );
+  }
 
   const grantedCodes = grantedModules.map((item) => item.moduleCode);
   const requestableModules = modules.filter((module) => !grantedCodes.includes(module.code));
 
   return (
-    <div className="org-module-request-page">
-      <section className="org-module-request-hero">
-        <p className="org-module-request-badge">Extra Module Requests</p>
-        <h1>{organization.name}</h1>
-        <p>Request missing modules from the Back-office SaaS.</p>
-        {error && <p className="org-module-request-error">{error}</p>}
+    <div className="premium-admin-page">
+      <header className="premium-admin-page-header">
+        <div>
+          <h1>Module Request Desk</h1>
+          <p>Ask the SaaS team to grant additional modules when your organization needs more capabilities.</p>
+        </div>
+      </header>
+
+      {(message || error) && (
+        <>
+          {message && <OrganizationNotice tone="success">{message}</OrganizationNotice>}
+          {error && <OrganizationNotice tone="error">{error}</OrganizationNotice>}
+        </>
+      )}
+
+      <section className="premium-admin-stats" aria-label="Module request summary">
+        <PremiumStatCard icon="layers" label="Granted modules" value={String(grantedModules.length)} />
+        <PremiumStatCard icon="plus" label="Requestable" value={String(requestableModules.length)} tone="secondary" />
+        <PremiumStatCard icon="file" label="Submitted requests" value={String(requests.length)} />
+        <PremiumStatCard icon="trending" label="Review status" value="Tracked" tone="secondary" />
       </section>
 
-      <div className="org-module-request-grid">
-        <div className="org-module-request-card">
+      <section className="premium-form-grid">
+        <form className="premium-form-card" onSubmit={handleSubmit}>
+          <p className="org-ui-eyebrow">New request</p>
           <h2>Request a module</h2>
+          <p>Explain the operational need so the SaaS team can review it quickly.</p>
 
-          <form onSubmit={handleSubmit} className="org-module-request-form">
+          <div className="premium-field">
             <label>Module</label>
-            <select
-              value={selectedModule}
-              onChange={(e) => setSelectedModule(e.target.value)}
-            >
+            <select value={selectedModule} onChange={(event) => setSelectedModule(event.target.value)}>
               <option value="">Select a module</option>
               {requestableModules.map((module) => (
                 <option key={module.code} value={module.code}>
@@ -88,37 +119,60 @@ function OrganizationModuleRequestPage() {
                 </option>
               ))}
             </select>
+          </div>
 
+          <div className="premium-field">
             <label>Comment</label>
             <textarea
               rows="4"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(event) => setComment(event.target.value)}
               placeholder="Why do you need this module?"
             />
+          </div>
 
-            <button type="submit">Submit Request</button>
-          </form>
-        </div>
+          <button type="submit" className="premium-gradient-button">
+            Submit Request
+          </button>
+        </form>
 
-        <div className="org-module-request-card">
+        <section className="premium-preview-card">
+          <p className="org-ui-eyebrow">History</p>
           <h2>Previous requests</h2>
+          <p>Track submitted requests and their current status.</p>
 
-          <div className="org-module-request-list">
+          <div className="premium-list" style={{ marginTop: 18 }}>
             {requests.length > 0 ? (
               requests.map((request) => (
-                <div key={request.id} className="org-module-request-item">
-                  <h3>{request.moduleName}</h3>
-                  <p>Status: <strong>{request.status}</strong></p>
-                  <p>{request.comment}</p>
-                </div>
+                <article key={request.id} className="premium-list-row">
+                  <div>
+                    <h3>{request.moduleName}</h3>
+                    <p>{request.comment}</p>
+                  </div>
+                  <PremiumStatusBadge status={request.status}>{request.status}</PremiumStatusBadge>
+                </article>
               ))
             ) : (
-              <p>No requests yet.</p>
+              <OrganizationEmptyState
+                title="No requests yet"
+                message="Submitted module requests will appear here for follow-up."
+                icon="plus"
+              />
             )}
           </div>
+        </section>
+      </section>
+
+      <section className="premium-panel">
+        <div className="premium-detail-header__badges">
+          <OrgIcon name="info" size={20} />
+          <h2>Request Guidance</h2>
         </div>
-      </div>
+        <p>
+          Requests do not immediately enable public modules. They create a review trail
+          for SaaS administrators, then approved modules can be made visible from Content Management.
+        </p>
+      </section>
     </div>
   );
 }

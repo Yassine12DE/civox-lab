@@ -57,9 +57,9 @@ function ParticleField() {
     const positions = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 12;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 8;
+      positions[i * 3] = (seededParticleValue(i, 1) - 0.5) * 12;
+      positions[i * 3 + 1] = (seededParticleValue(i, 2) - 0.5) * 8;
+      positions[i * 3 + 2] = (seededParticleValue(i, 3) - 0.5) * 8;
     }
 
     return positions;
@@ -90,6 +90,11 @@ function ParticleField() {
       />
     </points>
   );
+}
+
+function seededParticleValue(index, axis) {
+  const value = Math.sin(index * 12.9898 + axis * 78.233) * 43758.5453;
+  return value - Math.floor(value);
 }
 
 function CivoxScene() {
