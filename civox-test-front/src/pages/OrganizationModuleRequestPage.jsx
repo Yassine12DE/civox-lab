@@ -8,16 +8,17 @@ import {
   PremiumStatCard,
   PremiumStatusBadge,
 } from "../components/organization/OrganizationUi";
-import { modules } from "../data/modules";
 import {
   createModuleRequest,
   getOrganizationBackOfficeModules,
   getOrganizationModuleRequests,
 } from "../services/orgBackOfficeService";
+import { getPublicModules } from "../services/organizationRequestService";
 
 function OrganizationModuleRequestPage() {
   const { organization } = useOutletContext();
   const [grantedModules, setGrantedModules] = useState([]);
+  const [availableModules, setAvailableModules] = useState([]);
   const [requests, setRequests] = useState([]);
   const [selectedModule, setSelectedModule] = useState("");
   const [comment, setComment] = useState("");
@@ -29,13 +30,15 @@ function OrganizationModuleRequestPage() {
     if (!organization?.id) return;
 
     try {
-      const [modulesData, requestsData] = await Promise.all([
+      const [modulesData, requestsData, catalogData] = await Promise.all([
         getOrganizationBackOfficeModules(organization.id),
         getOrganizationModuleRequests(organization.id),
+        getPublicModules(),
       ]);
 
       setGrantedModules(modulesData);
       setRequests(requestsData);
+      setAvailableModules(Array.isArray(catalogData) ? catalogData : []);
     } catch (loadError) {
       console.error(loadError);
       setError(loadError.message || "Failed to load module requests");
@@ -78,7 +81,9 @@ function OrganizationModuleRequestPage() {
   }
 
   const grantedCodes = grantedModules.map((item) => item.moduleCode);
-  const requestableModules = modules.filter((module) => !grantedCodes.includes(module.code));
+  const requestableModules = availableModules.filter(
+    (module) => !grantedCodes.includes(module.code)
+  );
 
   return (
     <div className="premium-admin-page">

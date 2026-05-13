@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
   approveOrganizationAccessRequest,
@@ -26,21 +27,25 @@ import "../styles/saasOrganizationRequestsPage.css";
 const STATUSES = [
   "ALL",
   "PENDING",
+  "UNDER_REVIEW",
   "QUOTE_SENT",
   "AWAITING_PAYMENT",
   "PAID",
   "APPROVED",
+  "TENANT_ACTIVATED",
   "DECLINED",
+  "REJECTED",
   "CANCELLED",
 ];
 
 function SaasOrganizationRequestsPage() {
+  const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [actionLoading, setActionLoading] = useState("");
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -52,14 +57,17 @@ function SaasOrganizationRequestsPage() {
 
     try {
       const data = await getOrganizationAccessRequests();
-      setRequests(data);
+      const nextData = Array.isArray(data) ? data : [];
+      setRequests(nextData);
       setSelectedRequest((current) => {
-        if (!current) return data[0] || null;
-        return data.find((request) => request.id === current.id) || data[0] || null;
+        if (!current) return nextData[0] || null;
+        return nextData.find((request) => request.id === current.id) || nextData[0] || null;
       });
-      return data;
-    } catch (requestError) {
-      setError(requestError.message || "Organization requests could not be loaded.");
+      return nextData;
+    } catch (loadError) {
+      setError(loadError.message || "Live onboarding requests could not be loaded.");
+      setRequests([]);
+      setSelectedRequest(null);
       return [];
     } finally {
       setLoading(false);
@@ -69,6 +77,10 @@ function SaasOrganizationRequestsPage() {
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("q") || "");
+  }, [searchParams]);
 
   const filteredRequests = useMemo(
     () =>
@@ -90,10 +102,32 @@ function SaasOrganizationRequestsPage() {
       total: requests.length,
       pending: requests.filter((request) => request.requestStatus === "PENDING").length,
       awaitingPayment: requests.filter((request) => request.requestStatus === "AWAITING_PAYMENT").length,
-      approved: requests.filter((request) => request.requestStatus === "APPROVED").length,
+      approved: requests.filter((request) => ["APPROVED", "TENANT_ACTIVATED"].includes(request.requestStatus)).length,
     }),
     [requests]
   );
+  const pipelineSteps = useMemo(() => {
+    const quoteSent = requests.filter((request) =>
+      ["QUOTE_SENT", "AWAITING_PAYMENT", "PAID", "APPROVED", "TENANT_ACTIVATED"].includes(
+        String(request.requestStatus || "").toUpperCase()
+      )
+    ).length;
+    const paymentConfirmed = requests.filter((request) =>
+      ["PAID", "APPROVED", "TENANT_ACTIVATED"].includes(String(request.requestStatus || "").toUpperCase())
+    ).length;
+    const activated = requests.filter((request) =>
+      ["APPROVED", "TENANT_ACTIVATED"].includes(String(request.requestStatus || "").toUpperCase())
+    ).length;
+    const welcomed = requests.filter((request) => request.activatedAt).length;
+
+    return [
+      { label: "Request received", icon: "requests", count: metrics.total },
+      { label: "Quote sent", icon: "billing", count: quoteSent },
+      { label: "Payment confirmed", icon: "billing", count: paymentConfirmed },
+      { label: "Tenant activated", icon: "check", count: activated },
+      { label: "Welcome email sent", icon: "mail", count: welcomed },
+    ];
+  }, [metrics.total, requests]);
 
   const syncUpdatedRequest = (updatedRequest) => {
     setRequests((current) =>
@@ -211,6 +245,28 @@ function SaasOrganizationRequestsPage() {
         <SaasStatCard label="Activated" value={formatNumber(metrics.approved)} detail="Tenant created" icon="check" tone="teal" />
       </section>
 
+      <section className="saas-panel saas-onboarding-pipeline-panel">
+        <div className="saas-panel__header">
+          <div>
+            <h2>Onboarding pipeline</h2>
+            <p>Request received, quote sent, payment confirmed, tenant activated, and welcome email sent.</p>
+          </div>
+        </div>
+        <div className="saas-panel__body">
+          <div className="saas-onboarding-pipeline">
+            {pipelineSteps.map((step) => (
+              <div className="saas-onboarding-step" key={step.label}>
+                <span className={step.count > 0 ? "saas-onboarding-step__dot saas-onboarding-step__dot--done" : "saas-onboarding-step__dot"}>
+                  <SaasIcon name={step.icon} size={16} />
+                </span>
+                <strong>{step.label}</strong>
+                <small>{formatNumber(step.count)}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="saas-toolbar" aria-label="Organization request filters">
         <div className="saas-toolbar__filters">
           <label className="saas-search-field" aria-label="Search organization requests">
@@ -290,7 +346,7 @@ function SaasOrganizationRequestsPage() {
                         <div className="saas-table__actions">
                           <button
                             type="button"
-                            className="saas-button saas-button--ghost"
+                            className="saas-button saas-button--outline"
                             onClick={() => setSelectedRequest(request)}
                           >
                             Details
@@ -308,7 +364,7 @@ function SaasOrganizationRequestsPage() {
                           {canApprove(request) && (
                             <button
                               type="button"
-                              className="saas-button saas-button--primary"
+                              className="saas-button saas-button--success"
                               disabled={!!actionLoading}
                               onClick={() => handleApprove(request)}
                             >
@@ -433,6 +489,7 @@ function RequestDetails({
           <h3>Organization</h3>
           <Detail label="Contact" value={request.contactPersonName} />
           <Detail label="Contact email" value={request.contactEmail} />
+          <Detail label="Organization type" value={request.organizationType || "Municipality"} />
           <Detail label="Phone" value={request.phone || "Not provided"} />
           <Detail label="Address" value={request.address || "Not provided"} />
           <Detail label="Description" value={request.description || "No description provided."} multiline />
@@ -456,13 +513,31 @@ function RequestDetails({
 
         <QuoteCard request={request} />
 
+        <div className="saas-request-detail__section">
+          <h3>Payment status</h3>
+          <div className="saas-request-chip-list">
+            <span>{formatStatus(request.quoteStatus || "DRAFT")}</span>
+            <span>{formatStatus(request.paymentStatus || "NOT_STARTED")}</span>
+            <span>{formatMoney(request.quoteTotal || 0)}</span>
+          </div>
+        </div>
+
+        <div className="saas-request-detail__section">
+          <h3>Email history</h3>
+          <div className="saas-request-email-history">
+            {buildEmailHistory(request).map((event) => (
+              <span key={event}>{event}</span>
+            ))}
+          </div>
+        </div>
+
         {request.paymentUrl && (
           <div className="saas-request-detail__section">
             <h3>Payment link</h3>
             <p className="saas-request-muted">
               Use this link for local testing if SMTP delivery is unavailable.
             </p>
-            <a href={request.paymentUrl} target="_blank" rel="noreferrer" className="saas-button saas-button--secondary">
+            <a href={request.paymentUrl} target="_blank" rel="noreferrer" className="saas-button saas-button--outline">
               Open payment page
             </a>
           </div>
@@ -492,7 +567,7 @@ function RequestDetails({
           {canApprove(request) && (
             <button
               type="button"
-              className="saas-button saas-button--primary"
+              className="saas-button saas-button--success"
               disabled={!!actionLoading}
               onClick={() => onApprove(request)}
             >
@@ -502,7 +577,7 @@ function RequestDetails({
           {canMarkPaid(request) && (
             <button
               type="button"
-              className="saas-button saas-button--primary"
+              className="saas-button saas-button--success"
               disabled={!!actionLoading}
               onClick={() => onMarkPaid(request)}
             >
@@ -604,11 +679,11 @@ function Detail({ label, value, multiline = false, strong = false }) {
 }
 
 function canGenerateQuote(request) {
-  return ["PENDING", "QUOTE_SENT"].includes(request.requestStatus);
+  return ["PENDING", "UNDER_REVIEW", "QUOTE_SENT"].includes(request.requestStatus);
 }
 
 function canApprove(request) {
-  return ["PENDING", "QUOTE_SENT"].includes(request.requestStatus);
+  return ["PENDING", "UNDER_REVIEW", "QUOTE_SENT"].includes(request.requestStatus);
 }
 
 function canMarkPaid(request) {
@@ -623,7 +698,18 @@ function canResendPayment(request) {
 }
 
 function canDecline(request) {
-  return !["APPROVED", "PAID", "DECLINED", "CANCELLED", "REJECTED"].includes(request.requestStatus);
+  return !["APPROVED", "PAID", "DECLINED", "CANCELLED", "REJECTED", "TENANT_ACTIVATED"].includes(request.requestStatus);
+}
+
+function buildEmailHistory(request) {
+  const history = ["Request received"];
+  if (request.quoteSentAt) history.push("Quote sent");
+  if (request.approvedAt) history.push("Payment email sent");
+  if (request.paidAt) history.push("Payment confirmation sent");
+  if (request.activatedAt || request.requestStatus === "APPROVED") history.push("Welcome email sent");
+  if (request.declinedAt) history.push("Decline email sent");
+  return history;
 }
 
 export default SaasOrganizationRequestsPage;
+

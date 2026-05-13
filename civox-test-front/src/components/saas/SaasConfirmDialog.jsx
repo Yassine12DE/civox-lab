@@ -12,6 +12,12 @@ function SaasConfirmDialog({
   onCancel,
 }) {
   if (!open) return null;
+  const confirmToneClass =
+    tone === "danger"
+      ? "saas-button--danger"
+      : tone === "success"
+        ? "saas-button--success"
+        : "saas-button--primary";
 
   return (
     <div className="saas-dialog-backdrop" role="presentation">
@@ -34,9 +40,10 @@ function SaasConfirmDialog({
           </button>
           <button
             type="button"
-            className={`saas-button ${tone === "danger" ? "saas-button--danger" : "saas-button--primary"}`}
+            className={`saas-button ${confirmToneClass}`}
             onClick={onConfirm}
             disabled={busy}
+            aria-busy={busy}
           >
             {busy ? "Working..." : confirmLabel}
           </button>

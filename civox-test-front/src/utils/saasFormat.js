@@ -59,16 +59,20 @@ export function isPendingStatus(status) {
 export function getStatusTone(status) {
   const normalizedStatus = String(status || "").toUpperCase();
 
-  if (["ACTIVE", "APPROVED", "GRANTED", "ENABLED", "PAID"].includes(normalizedStatus)) {
+  if (["ACTIVE", "APPROVED", "GRANTED", "ENABLED", "PAID", "SUCCESS", "OPERATIONAL", "TENANT_ACTIVATED"].includes(normalizedStatus)) {
     return "success";
   }
 
-  if (["PENDING", "IN_REVIEW", "DRAFT", "QUOTE_SENT", "AWAITING_PAYMENT", "SENT"].includes(normalizedStatus)) {
+  if (["PENDING", "IN_REVIEW", "UNDER_REVIEW", "DRAFT", "QUOTE_SENT", "AWAITING_PAYMENT", "SENT", "TRIAL", "BETA", "WARNING", "ACCEPTED"].includes(normalizedStatus)) {
     return "warning";
   }
 
-  if (["REJECTED", "DECLINED", "CANCELLED", "FAILED", "INACTIVE", "DISABLED", "SUSPENDED", "NOT_GRANTED"].includes(normalizedStatus)) {
+  if (["REJECTED", "DECLINED", "CANCELLED", "FAILED", "INACTIVE", "DISABLED", "SUSPENDED", "NOT_GRANTED", "OVERDUE", "PAST_DUE", "CRITICAL", "DEGRADED"].includes(normalizedStatus)) {
     return "danger";
+  }
+
+  if (["INFO", "AVAILABLE"].includes(normalizedStatus)) {
+    return "info";
   }
 
   return "neutral";

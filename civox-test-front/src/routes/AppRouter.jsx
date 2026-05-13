@@ -28,7 +28,14 @@ import OrganizationUserManagementPage from "../pages/OrganizationUserManagementP
 import OrganizationModulePage from "../pages/OrganizationModulePage";
 import OrganizationModulesPage from "../pages/OrganizationModulesPage";
 import OrganizationContentCreatePage from "../pages/OrganizationContentCreatePage";
-import SaasPlaceholderPage from "../pages/SaasPlaceholderPage";
+import SaasAuditLogPage from "../pages/SaasAuditLogPage";
+import SaasBillingInvoicesPage from "../pages/SaasBillingInvoicesPage";
+import SaasGlobalUsersPage from "../pages/SaasGlobalUsersPage";
+import SaasModulesCatalogPage from "../pages/SaasModulesCatalogPage";
+import SaasPlatformMonitoringPage from "../pages/SaasPlatformMonitoringPage";
+import SaasPlansSubscriptionsPage from "../pages/SaasPlansSubscriptionsPage";
+import SaasQuotesPaymentsPage from "../pages/SaasQuotesPaymentsPage";
+import SaasSettingsPage from "../pages/SaasSettingsPage";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { getTenantSlugFromHost } from "../utils/tenant";
 import { getAccessToken } from "../utils/tokenStorage";
@@ -81,50 +88,14 @@ function AppRouter() {
               <Route path="organizations/:slug/modules" element={<SaasManageModulesPage />} />
               <Route path="requests" element={<SaasOrganizationRequestsPage />} />
               <Route path="module-requests" element={<SaasModuleRequestsPage />} />
-              <Route
-                path="plans"
-                element={
-                  <SaasPlaceholderPage
-                    eyebrow="Subscriptions"
-                    title="Plans"
-                    description="Prepare SaaS package, billing, and subscription controls for future platform operations."
-                    icon="billing"
-                  />
-                }
-              />
-              <Route
-                path="users"
-                element={
-                  <SaasPlaceholderPage
-                    eyebrow="Access overview"
-                    title="Global Users"
-                    description="A future overview for users, roles, and cross-tenant access signals."
-                    icon="users"
-                  />
-                }
-              />
-              <Route
-                path="activity"
-                element={
-                  <SaasPlaceholderPage
-                    eyebrow="Audit"
-                    title="Audit Log"
-                    description="A future platform trail for sensitive administrative actions and system events."
-                    icon="activity"
-                  />
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <SaasPlaceholderPage
-                    eyebrow="Platform"
-                    title="Settings"
-                    description="A future control center for global defaults, security, and platform preferences."
-                    icon="settings"
-                  />
-                }
-              />
+              <Route path="modules-catalog" element={<SaasModulesCatalogPage />} />
+              <Route path="plans" element={<SaasPlansSubscriptionsPage />} />
+              <Route path="billing" element={<SaasBillingInvoicesPage />} />
+              <Route path="quotes-payments" element={<SaasQuotesPaymentsPage />} />
+              <Route path="users" element={<SaasGlobalUsersPage />} />
+              <Route path="activity" element={<SaasAuditLogPage />} />
+              <Route path="monitoring" element={<SaasPlatformMonitoringPage />} />
+              <Route path="settings" element={<SaasSettingsPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

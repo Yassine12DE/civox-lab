@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   approveModuleRequest,
   getAllModuleRequests,
@@ -25,10 +26,11 @@ function getStatusOptions(requests) {
 }
 
 function SaasModuleRequestsPage() {
+  const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
@@ -40,10 +42,12 @@ function SaasModuleRequestsPage() {
 
     try {
       const data = await getAllModuleRequests();
-      setRequests(data);
-      return data;
-    } catch {
-      setError("Module requests could not be loaded. Please try again.");
+      const nextData = Array.isArray(data) ? data : [];
+      setRequests(nextData);
+      return nextData;
+    } catch (loadError) {
+      setError(loadError.message || "Live module requests could not be loaded.");
+      setRequests([]);
       return [];
     } finally {
       setLoading(false);
@@ -53,6 +57,10 @@ function SaasModuleRequestsPage() {
   useEffect(() => {
     loadRequests();
   }, []);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get("q") || "");
+  }, [searchParams]);
 
   const statusOptions = useMemo(() => getStatusOptions(requests), [requests]);
   const filteredRequests = useMemo(
@@ -231,6 +239,8 @@ function SaasModuleRequestsPage() {
                   <tr>
                     <th>Organization</th>
                     <th>Module</th>
+                    <th>Current modules</th>
+                    <th>Reason</th>
                     <th>Status</th>
                     <th>Requested</th>
                     <th aria-label="Actions" />
@@ -250,6 +260,18 @@ function SaasModuleRequestsPage() {
                         <span className="saas-table__muted">{request.moduleCode}</span>
                       </td>
                       <td>
+                        <span className="saas-table__muted">
+                          {(request.currentModules || []).length
+                            ? `${request.currentModules.length} enabled`
+                            : "Not available"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="saas-table__muted saas-table__muted--wide">
+                          {request.comment || "No reason provided."}
+                        </span>
+                      </td>
+                      <td>
                         <SaasStatusBadge status={request.status} />
                       </td>
                       <td>{formatDateTime(request.requestDate)}</td>
@@ -257,23 +279,39 @@ function SaasModuleRequestsPage() {
                         <div className="saas-table__actions">
                           <button
                             type="button"
-                            className="saas-button saas-button--ghost"
+                            className="saas-button saas-button--outline"
                             onClick={() => setSelectedRequest(request)}
                           >
                             Details
                           </button>
+                          {request.organizationSlug && (
+                            <>
+                              <Link
+                                to={`/saas/organizations/${request.organizationSlug}`}
+                                className="saas-button saas-button--outline"
+                              >
+                                View org
+                              </Link>
+                              <Link
+                                to={`/saas/organizations/${request.organizationSlug}/modules`}
+                                className="saas-button saas-button--secondary"
+                              >
+                                Access
+                              </Link>
+                            </>
+                          )}
                           {isPendingStatus(request.status) && (
                             <>
                               <button
                                 type="button"
-                                className="saas-button saas-button--secondary"
+                                className="saas-button saas-button--danger"
                                 onClick={() => openConfirmation(request, "reject")}
                               >
                                 Reject
                               </button>
                               <button
                                 type="button"
-                                className="saas-button saas-button--primary"
+                                className="saas-button saas-button--success"
                                 onClick={() => openConfirmation(request, "approve")}
                               >
                                 Approve
@@ -319,6 +357,18 @@ function SaasModuleRequestsPage() {
                   <strong>{selectedRequest.moduleName || selectedRequest.moduleCode}</strong>
                 </div>
                 <div className="saas-detail-list__item">
+                  <span>Current modules</span>
+                  <p>
+                    {(selectedRequest.currentModules || []).length
+                      ? selectedRequest.currentModules.join(", ")
+                      : "Not available"}
+                  </p>
+                </div>
+                <div className="saas-detail-list__item">
+                  <span>Requested by</span>
+                  <strong>{selectedRequest.requestedBy || "Tenant administrator"}</strong>
+                </div>
+                <div className="saas-detail-list__item">
                   <span>Status</span>
                   <SaasStatusBadge status={selectedRequest.status} />
                 </div>
@@ -339,18 +389,35 @@ function SaasModuleRequestsPage() {
                   <div className="saas-form__actions">
                     <button
                       type="button"
-                      className="saas-button saas-button--secondary"
+                      className="saas-button saas-button--danger"
                       onClick={() => openConfirmation(selectedRequest, "reject")}
                     >
                       Reject
                     </button>
                     <button
                       type="button"
-                      className="saas-button saas-button--primary"
+                      className="saas-button saas-button--success"
                       onClick={() => openConfirmation(selectedRequest, "approve")}
                     >
                       Approve
                     </button>
+                  </div>
+                )}
+
+                {selectedRequest.organizationSlug && (
+                  <div className="saas-form__actions">
+                    <Link
+                      to={`/saas/organizations/${selectedRequest.organizationSlug}`}
+                      className="saas-button saas-button--outline"
+                    >
+                      View organization
+                    </Link>
+                    <Link
+                      to={`/saas/organizations/${selectedRequest.organizationSlug}/modules`}
+                      className="saas-button saas-button--secondary"
+                    >
+                      Open module access
+                    </Link>
                   </div>
                 )}
               </div>
@@ -376,7 +443,7 @@ function SaasModuleRequestsPage() {
             : ""
         }
         confirmLabel={confirmation?.action === "approve" ? "Approve request" : "Reject request"}
-        tone={confirmation?.action === "approve" ? "primary" : "danger"}
+        tone={confirmation?.action === "approve" ? "success" : "danger"}
         busy={actionLoading}
         onConfirm={handleDecision}
         onCancel={() => setConfirmation(null)}
@@ -386,3 +453,4 @@ function SaasModuleRequestsPage() {
 }
 
 export default SaasModuleRequestsPage;
+
