@@ -117,6 +117,42 @@ function OrganizationUserManagementPage() {
     }
   };
 
+  const exportUsers = () => {
+    const header = [
+      "id",
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "role",
+      "status",
+      "createdAt",
+    ];
+    const lines = [
+      header.join(","),
+      ...filteredUsers.map((user) =>
+        [
+          user.id,
+          csvValue(user.firstName),
+          csvValue(user.lastName),
+          csvValue(user.email),
+          csvValue(user.phone),
+          csvValue(user.role),
+          csvValue(user.status),
+          csvValue(user.createdAt),
+        ].join(",")
+      ),
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${organization?.slug || "organization"}-users.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredUsers = users.filter((user) => {
     const fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim().toLowerCase();
     const email = (user.email || "").toLowerCase();
@@ -153,10 +189,10 @@ function OrganizationUserManagementPage() {
       )}
 
       <section className="premium-admin-stats" aria-label="User directory summary">
-        <PremiumStatCard icon="users" label="Total Users" value={String(users.length || "12,847")} />
-        <PremiumStatCard icon="checkCircle" label="Active" value={String(activeUsers.length || "11,203")} tone="secondary" />
-        <PremiumStatCard icon="clock" label="Pending" value={String(pendingUsers.length || "124")} />
-        <PremiumStatCard icon="powerOff" label="Inactive" value={String(archivedUsers.length || "1,520")} tone="secondary" />
+        <PremiumStatCard icon="users" label="Total Users" value={String(users.length)} />
+        <PremiumStatCard icon="checkCircle" label="Active" value={String(activeUsers.length)} tone="secondary" />
+        <PremiumStatCard icon="clock" label="Pending" value={String(pendingUsers.length)} />
+        <PremiumStatCard icon="powerOff" label="Inactive" value={String(archivedUsers.length)} tone="secondary" />
       </section>
 
       <section className="premium-form-card">
@@ -194,7 +230,7 @@ function OrganizationUserManagementPage() {
               ))}
             </select>
 
-            <button type="button" className="premium-soft-button">
+            <button type="button" className="premium-soft-button" onClick={exportUsers}>
               <OrgIcon name="download" size={18} />
               Export
             </button>
@@ -312,12 +348,19 @@ function OrganizationUserManagementPage() {
                       </td>
                       <td><span className="premium-status premium-status--neutral">{user.role}</span></td>
                       <td><PremiumStatusBadge status={user.status}>{formatStatus(user.status)}</PremiumStatusBadge></td>
-                      <td>{formatDate(user.createdAt) || "Jan 15, 2025"}</td>
-                      <td>{user.lastActive || (index % 2 ? "1 day ago" : "2 hours ago")}</td>
-                      <td><strong>{user.votes || index * 6 + 8}</strong></td>
+                      <td>{formatDate(user.createdAt) || "-"}</td>
+                      <td>{user.lastActive || "-"}</td>
+                      <td><strong>{user.votes ?? "-"}</strong></td>
                       <td>
                         <div className="premium-row-actions">
-                          <button type="button" className="premium-soft-button">
+                          <button
+                            type="button"
+                            className="premium-soft-button"
+                            onClick={() => {
+                              if (!user.email) return;
+                              window.location.href = `mailto:${user.email}`;
+                            }}
+                          >
                             <OrgIcon name="mail" size={16} />
                           </button>
                           {canArchiveTarget(currentUser, user) && (
@@ -446,6 +489,11 @@ function formatDate(value) {
   } catch {
     return "";
   }
+}
+
+function csvValue(value) {
+  const normalized = value == null ? "" : String(value);
+  return `"${normalized.replaceAll("\"", "\"\"")}"`;
 }
 
 export default OrganizationUserManagementPage;

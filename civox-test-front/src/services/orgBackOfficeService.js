@@ -78,6 +78,30 @@ export async function getOrganizationModuleRequests(organizationId) {
   return await response.json();
 }
 
+export async function getOrganizationModuleCatalog(organizationId) {
+  const response = await fetchWithAuth(`${API_BASE_URL}/org/${organizationId}/module-catalog`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch organization module catalog");
+  }
+
+  return await response.json();
+}
+
+export async function getOrganizationAnalyticsDashboard(organizationId) {
+  const response = await fetchWithAuth(`${API_BASE_URL}/org/${organizationId}/analytics/dashboard`);
+  const data = await readJsonOrEmpty(response);
+
+  if (!response.ok) {
+    const error = new Error(data.message || "Failed to fetch organization analytics");
+    error.status = response.status;
+    error.payload = data;
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getOrganizationUsers(organizationId) {
   const response = await fetchWithAuth(`${API_BASE_URL}/org/${organizationId}/users`);
 
@@ -161,6 +185,20 @@ export async function saveOrganizationContentResponse(organizationId, contentTyp
   if (!response.ok) {
     const data = await readJsonOrEmpty(response);
     throw new Error(data.message || "Failed to save content response");
+  }
+
+  return await response.json();
+}
+
+export async function setOrganizationContentPublished(organizationId, contentType, contentId, published) {
+  const response = await fetchWithAuth(
+    `${API_BASE_URL}/org/${organizationId}/content/${contentType}/${contentId}/published?published=${published}`,
+    { method: "PATCH" }
+  );
+
+  if (!response.ok) {
+    const data = await readJsonOrEmpty(response);
+    throw new Error(data.message || "Failed to update content visibility");
   }
 
   return await response.json();

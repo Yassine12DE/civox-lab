@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   approveOrganizationAccessRequest,
   declineOrganizationAccessRequest,
@@ -8,6 +8,7 @@ import {
   resendOrganizationAccessEmail,
   sendOrganizationAccessQuote,
 } from "../services/saasService";
+import { subscribeToSaasOrganizationRequestEvents } from "../services/organizationRequestRealtimeService";
 import SaasEmptyState from "../components/saas/SaasEmptyState";
 import SaasIcon from "../components/saas/SaasIcon";
 import SaasLoadingState from "../components/saas/SaasLoadingState";
@@ -38,6 +39,27 @@ const STATUSES = [
   "CANCELLED",
 ];
 
+function mergeRealtimeRequest(request, event) {
+  if (!request || request.id !== event.organizationRequestId) {
+    return request;
+  }
+
+  const nextPaidAt = event.paidAt || request.paidAt;
+  const nextActivatedAt = event.activatedAt || (event.status === "APPROVED" ? nextPaidAt : request.activatedAt);
+
+  return {
+    ...request,
+    requestStatus: event.status || request.requestStatus,
+    paymentStatus: event.paymentStatus || request.paymentStatus,
+    paidAt: nextPaidAt,
+    activatedAt: nextActivatedAt,
+    stripeSessionId: event.stripeSessionId || request.stripeSessionId,
+    organizationCreatedId:
+      event.organizationCreatedId !== undefined ? event.organizationCreatedId : request.organizationCreatedId,
+    updatedAt: event.updatedAt || nextActivatedAt || nextPaidAt || request.updatedAt,
+  };
+}
+
 function SaasOrganizationRequestsPage() {
   const [searchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
@@ -51,9 +73,13 @@ function SaasOrganizationRequestsPage() {
   const [approvalNotes, setApprovalNotes] = useState("");
   const [declineRequest, setDeclineRequest] = useState(null);
   const [declineReason, setDeclineReason] = useState("");
+  const [realtimeMode, setRealtimeMode] = useState("idle");
+  const [realtimeMessage, setRealtimeMessage] = useState("");
 
-  const loadRequests = async () => {
-    setError("");
+  const loadRequests = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setError("");
+    }
 
     try {
       const data = await getOrganizationAccessRequests();
@@ -65,22 +91,93 @@ function SaasOrganizationRequestsPage() {
       });
       return nextData;
     } catch (loadError) {
-      setError(loadError.message || "Live onboarding requests could not be loaded.");
+      if (!silent) {
+        setError(loadError.message || "Live onboarding requests could not be loaded.");
+      }
       setRequests([]);
       setSelectedRequest(null);
       return [];
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [loadRequests]);
 
   useEffect(() => {
     setSearchTerm(searchParams.get("q") || "");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (loading) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setRealtimeMode("live");
+    setRealtimeMessage("");
+
+    const stream = subscribeToSaasOrganizationRequestEvents(
+      (event) => {
+        if (cancelled || !event?.organizationRequestId) {
+          return;
+        }
+
+        setRequests((current) => current.map((request) => mergeRealtimeRequest(request, event)));
+        setSelectedRequest((current) => {
+          if (!current || current.id !== event.organizationRequestId) {
+            return current;
+          }
+          return mergeRealtimeRequest(current, event);
+        });
+        setRealtimeMessage(
+          `${event.organizationName || "An organization request"} was updated instantly after Stripe confirmed payment.`
+        );
+        setNotice({
+          tone: "success",
+          title: "Payment confirmed",
+          message: `${event.organizationName || "The request"} is now ${formatStatus(event.status)}.`,
+        });
+      },
+      (streamError) => {
+        if (cancelled) {
+          return;
+        }
+
+        setRealtimeMode("fallback");
+        setRealtimeMessage(
+          streamError?.message
+            ? `Realtime stream unavailable. Falling back to polling. ${streamError.message}`
+            : "Realtime stream unavailable. Falling back to polling."
+        );
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      stream?.close?.();
+    };
+  }, [loading]);
+
+  useEffect(() => {
+    if (realtimeMode !== "fallback") {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      loadRequests({ silent: true }).catch(() => {
+        // Polling is best-effort. The existing notice stays in place if refresh fails.
+      });
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadRequests, realtimeMode]);
 
   const filteredRequests = useMemo(
     () =>
@@ -235,6 +332,15 @@ function SaasOrganizationRequestsPage() {
           title={notice.title}
           message={notice.message}
           onDismiss={() => setNotice(null)}
+        />
+      )}
+
+      {realtimeMessage && realtimeMode === "fallback" && (
+        <SaasNotice
+          tone="info"
+          title="Realtime updates paused"
+          message={realtimeMessage}
+          onDismiss={() => setRealtimeMessage("")}
         />
       )}
 
@@ -520,6 +626,7 @@ function RequestDetails({
             <span>{formatStatus(request.paymentStatus || "NOT_STARTED")}</span>
             <span>{formatMoney(request.quoteTotal || 0)}</span>
           </div>
+          {request.stripeSessionId && <Detail label="Stripe session" value={request.stripeSessionId} />}
         </div>
 
         <div className="saas-request-detail__section">
@@ -535,10 +642,10 @@ function RequestDetails({
           <div className="saas-request-detail__section">
             <h3>Payment link</h3>
             <p className="saas-request-muted">
-              Use this link for local testing if SMTP delivery is unavailable.
+              Use this link to launch the hosted Stripe Checkout demo if SMTP delivery is unavailable.
             </p>
             <a href={request.paymentUrl} target="_blank" rel="noreferrer" className="saas-button saas-button--outline">
-              Open payment page
+              Open Stripe checkout
             </a>
           </div>
         )}

@@ -1,5 +1,6 @@
 {
     "cSpell.ignoreWords": [
         "CIVOX"
-    ]
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
 }

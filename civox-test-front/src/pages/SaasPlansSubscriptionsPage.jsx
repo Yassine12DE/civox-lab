@@ -8,6 +8,7 @@ import SaasPageHeader from "../components/saas/SaasPageHeader";
 import SaasStatCard from "../components/saas/SaasStatCard";
 import SaasStatusBadge from "../components/saas/SaasStatusBadge";
 import { getOrganizationAccessRequests, getSaasOrganizations } from "../services/saasService";
+import { createSaasStripeCheckoutSession } from "../services/stripeService";
 import { buildRevenueTrendFromSubscriptions, buildSubscriptions } from "../utils/saasDerivedData";
 import { formatDate, formatMoney, formatNumber } from "../utils/saasFormat";
 
@@ -16,6 +17,7 @@ function SaasPlansSubscriptionsPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
+  const [busyId, setBusyId] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -83,6 +85,31 @@ function SaasPlansSubscriptionsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const launchStripeCheckout = async (subscription) => {
+    const actionId = String(subscription.organizationId || subscription.slug || "subscription");
+    setBusyId(actionId);
+    setNotice(null);
+
+    try {
+      // Stripe test card for demo checkout: 4242 4242 4242 4242, any future expiry, any CVC.
+      const session = await createSaasStripeCheckoutSession({
+        flowType: "SUBSCRIPTION",
+        organizationId: subscription.organizationId,
+        planCode: subscription.plan,
+      });
+
+      if (!session?.checkoutUrl) {
+        throw new Error("Stripe checkout URL was not returned by the backend.");
+      }
+
+      window.location.assign(session.checkoutUrl);
+    } catch (error) {
+      setNotice({ tone: "danger", title: "Stripe checkout unavailable", message: error.message });
+    } finally {
+      setBusyId("");
+    }
+  };
+
   if (loading) return <SaasLoadingState label="Loading plans and subscriptions..." />;
 
   return (
@@ -124,7 +151,14 @@ function SaasPlansSubscriptionsPage() {
             <SaasStatusBadge status="ACTIVE" label="Live" />
           </div>
           <div className="saas-panel__body">
-            <SaasBarChart data={revenueTrend} color="purple" />
+            <SaasBarChart
+              data={revenueTrend}
+              color="purple"
+              title="MRR by month"
+              xAxisLabel="Month"
+              yAxisLabel="MRR (USD)"
+              valueFormatter={(value) => formatMoney(value * 1000)}
+            />
           </div>
         </div>
 
@@ -212,6 +246,17 @@ function SaasPlansSubscriptionsPage() {
                       <Link to={`/saas/organizations/${subscription.slug}`} className="saas-button saas-button--outline">
                         Open
                       </Link>
+                      <button
+                        type="button"
+                        className="saas-button saas-button--primary"
+                        onClick={() => launchStripeCheckout(subscription)}
+                        disabled={!!busyId}
+                        aria-busy={busyId === String(subscription.organizationId || subscription.slug || "subscription")}
+                      >
+                        {busyId === String(subscription.organizationId || subscription.slug || "subscription")
+                          ? "Opening..."
+                          : "Stripe checkout"}
+                      </button>
                     </div>
                   </td>
                 </tr>

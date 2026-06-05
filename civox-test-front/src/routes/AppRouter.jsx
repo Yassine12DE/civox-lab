@@ -4,6 +4,7 @@ import HomePage from "../pages/HomePage";
 import OrganizationRequestPage from "../pages/OrganizationRequestPage";
 import PaymentPage from "../pages/PaymentPage";
 import PaymentSuccessPage from "../pages/PaymentSuccessPage";
+import PaymentCancelPage from "../pages/PaymentCancelPage";
 import OrganizationsPage from "../pages/OrganizationsPage";
 import OrganizationDetailsPage from "../pages/OrganizationDetailsPage";
 import PublicLayout from "../layouts/PublicLayout";
@@ -69,6 +70,9 @@ function AppRouter() {
               <Route path="/organizations" element={<OrganizationsPage />} />
               <Route path="/payment/:token" element={<PaymentPage />} />
               <Route path="/payment/:token/success" element={<PaymentSuccessPage />} />
+              <Route path="/payment/:token/cancel" element={<PaymentCancelPage />} />
+              <Route path="/stripe/success" element={<PaymentSuccessPage />} />
+              <Route path="/stripe/cancel" element={<PaymentCancelPage />} />
             </Route>
 
             <Route path="/saas/login" element={<SaasLoginPage />} />

@@ -570,3 +570,17 @@
     padding: 32px 0;
   }
 }
+
+.organization-layout b,
+.organization-layout strong {
+  font-weight: 620;
+}
+
+.organization-brand span,
+.organization-admin-current span,
+.organization-admin-sidebar__brand span,
+.organization-admin-sidebar__card span,
+.organization-nav-link,
+.organization-admin-nav-link {
+  font-weight: 600;
+}

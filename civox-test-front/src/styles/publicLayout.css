@@ -120,3 +120,15 @@
     text-align: center;
   }
 }
+
+.public-layout b,
+.public-layout strong {
+  font-weight: 620;
+}
+
+.public-brand-logo,
+.public-brand-text,
+.public-nav-link,
+.public-nav-cta {
+  font-weight: 620;
+}

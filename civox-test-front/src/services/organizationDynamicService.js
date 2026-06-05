@@ -19,3 +19,13 @@ export async function getCurrentOrganizationModules() {
 
   return await response.json();
 }
+
+export async function getCurrentOrganizationContent(contentType) {
+  const response = await fetch(`${API_BASE_URL}/public/organization/content/${contentType}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch organization content");
+  }
+
+  return await response.json();
+}

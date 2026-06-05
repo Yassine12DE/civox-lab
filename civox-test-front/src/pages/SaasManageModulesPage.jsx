@@ -30,6 +30,7 @@ function buildModuleRows(moduleCatalog, grantedModules) {
       code: module.code,
       name: module.name,
       description: module.description,
+      scope: module.scope || "BOTH",
       isGranted: !!grantedModule?.grantedBySaas,
       enabledByOrganization: !!grantedModule?.enabledByOrganization,
       displayOrder: grantedModule?.displayOrder ?? null,
@@ -325,6 +326,7 @@ function SaasManageModulesPage() {
 
                   <div className="saas-module-card__meta">
                     <SaasStatusBadge status={module.code} label={module.code} tone="info" />
+                    <SaasStatusBadge status={module.scope} label={module.scope} tone="neutral" />
                     <SaasStatusBadge
                       status={module.enabledByOrganization ? "ENABLED" : "DISABLED"}
                       label={module.enabledByOrganization ? "Tenant enabled" : "Tenant disabled"}

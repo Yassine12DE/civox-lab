@@ -15,7 +15,7 @@ import {
 } from "../services/saasService";
 import { formatNumber, includesSearchValue } from "../utils/saasFormat";
 
-const emptyForm = { code: "", name: "", description: "", active: true };
+const emptyForm = { code: "", name: "", description: "", scope: "BOTH", active: true };
 
 function SaasModulesCatalogPage() {
   const [searchParams] = useSearchParams();
@@ -89,6 +89,7 @@ function SaasModulesCatalogPage() {
       code: module.code,
       name: module.name,
       description: module.description || "",
+      scope: module.scope || "BOTH",
       active: module.active,
     });
     setFormOpen(true);
@@ -220,6 +221,7 @@ function SaasModulesCatalogPage() {
 
               <div className="saas-card-meta-row">
                 <span>{module.code}</span>
+                <span>{module.scope || "BOTH"}</span>
                 <label className="saas-toggle-row saas-toggle-row--compact">
                   <input
                     type="checkbox"
@@ -253,6 +255,19 @@ function SaasModulesCatalogPage() {
                 <Field label="Code" value={form.code} onChange={(value) => setForm((prev) => ({ ...prev, code: value.toUpperCase() }))} disabled={!!editingModule} />
                 <Field label="Name" value={form.name} onChange={(value) => setForm((prev) => ({ ...prev, name: value }))} />
                 <label className="saas-form__field saas-form__field--full"><span>Description</span><textarea className="saas-textarea-field" value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} /></label>
+                <label className="saas-form__field">
+                  <span>Scope</span>
+                  <select
+                    className="saas-select-field"
+                    value={form.scope}
+                    onChange={(event) => setForm((prev) => ({ ...prev, scope: event.target.value }))}
+                  >
+                    <option value="FRONT_OFFICE">Front-office</option>
+                    <option value="BACK_OFFICE">Back-office</option>
+                    <option value="BOTH">Both</option>
+                    <option value="SAAS_ONLY">SaaS only</option>
+                  </select>
+                </label>
                 <label className="saas-toggle-row"><input type="checkbox" checked={!!form.active} onChange={(event) => setForm((prev) => ({ ...prev, active: event.target.checked }))} /><span />Module is active</label>
               </div>
               <div className="saas-form__actions">

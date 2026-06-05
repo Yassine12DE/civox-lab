@@ -144,7 +144,12 @@ function SaasDashboardPage() {
             <SaasStatusBadge status="SUCCESS" label="Live" />
           </div>
           <div className="saas-panel__body">
-            <SaasTrendChart data={organizationGrowth} />
+            <SaasTrendChart
+              data={organizationGrowth}
+              title="Organizations onboarded"
+              xAxisLabel="Month"
+              yAxisLabel="Cumulative organizations"
+            />
           </div>
         </div>
 
@@ -156,7 +161,13 @@ function SaasDashboardPage() {
             </div>
           </div>
           <div className="saas-panel__body">
-            <SaasBarChart data={moduleDemand.length ? moduleDemand : [{ label: "No requests", value: 1 }]} color="orange" />
+            <SaasBarChart
+              data={moduleDemand.length ? moduleDemand : [{ label: "No requests", value: 1 }]}
+              color="orange"
+              title="Module requests by volume"
+              xAxisLabel="Module"
+              yAxisLabel="Number of requests"
+            />
           </div>
         </div>
       </section>
@@ -170,7 +181,7 @@ function SaasDashboardPage() {
             </div>
           </div>
           <div className="saas-panel__body">
-            <SaasDonutChart data={subscriptionDistribution} />
+            <SaasDonutChart data={subscriptionDistribution} title="Plan distribution" centerLabel="organizations" />
           </div>
         </div>
 
@@ -309,7 +320,14 @@ function SaasDashboardPage() {
           </div>
         </div>
         <div className="saas-panel__body">
-          <SaasBarChart data={revenueTrend} color="purple" />
+          <SaasBarChart
+            data={revenueTrend}
+            color="purple"
+            title="Monthly recurring revenue trend"
+            xAxisLabel="Month"
+            yAxisLabel="MRR (USD)"
+            valueFormatter={(value) => formatMoney(value * 1000)}
+          />
         </div>
       </section>
     </div>

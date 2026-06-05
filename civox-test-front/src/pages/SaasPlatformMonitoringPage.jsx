@@ -152,7 +152,13 @@ function SaasPlatformMonitoringPage() {
           </div>
         </div>
         <div className="saas-panel__body">
-          <SaasTrendChart data={responseTrend.map((item, index) => ({ label: item.label, value: Math.round(item.value / (index + 6)) }))} />
+          <SaasTrendChart
+            data={responseTrend.map((item, index) => ({ label: item.label, value: Math.round(item.value / (index + 6)) }))}
+            title="Average platform latency"
+            xAxisLabel="Month"
+            yAxisLabel="Response time (ms)"
+            valueFormatter={(value) => `${Math.round(value)}ms`}
+          />
         </div>
       </section>
 

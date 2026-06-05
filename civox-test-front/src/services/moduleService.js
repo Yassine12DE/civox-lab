@@ -1,16 +1,6 @@
-import { modules } from "../data/modules";
 import { getAccessToken } from "../utils/tokenStorage";
 import API_BASE_URL from "./api";
 
-export function getEnabledModulesForOrganization(organization) {
-  if (!organization || !organization.enabledModules) {
-    return [];
-  }
-
-  return modules.filter((module) =>
-    organization.enabledModules.includes(module.code)
-  );
-}
 export async function fetchMyModules() {
   const token = getAccessToken();
 

@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { completePayment, getPaymentSummary } from "../services/organizationRequestService";
+import { Link, useParams } from "react-router-dom";
+import { getPaymentSummary } from "../services/organizationRequestService";
+import { subscribeToPublicOrganizationRequestEvents } from "../services/organizationRequestRealtimeService";
+import { createPublicStripeCheckoutSession } from "../services/stripeService";
 import { formatMoney, formatStatus } from "../utils/saasFormat";
 import "../styles/paymentPage.css";
 
 function PaymentPage() {
   const { token } = useParams();
-  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
+  const [realtimeMode, setRealtimeMode] = useState("idle");
+  const [realtimeMessage, setRealtimeMessage] = useState("");
+  const [paymentEvent, setPaymentEvent] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -31,16 +35,95 @@ function PaymentPage() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (!token) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    setRealtimeMode("live");
+    setRealtimeMessage("");
+
+    const stream = subscribeToPublicOrganizationRequestEvents(
+      token,
+      (event) => {
+        if (cancelled || !event?.organizationRequestId) {
+          return;
+        }
+
+        setPaymentEvent(event);
+        setSummary((current) => mergePaymentSummary(current, event));
+        setLoading(false);
+        setPaying(false);
+        setRealtimeMessage(
+          `${event.organizationName || "The request"} was updated instantly after Stripe confirmed payment.`
+        );
+        getPaymentSummary(token)
+          .then((data) => {
+            setSummary(data);
+          })
+          .catch(() => {
+            // The live event already updated the state, so this refetch is best-effort.
+          });
+      },
+      (streamError) => {
+        if (cancelled) {
+          return;
+        }
+
+        setRealtimeMode("fallback");
+        setRealtimeMessage(
+          streamError?.message
+            ? `Realtime stream unavailable. Falling back to polling. ${streamError.message}`
+            : "Realtime stream unavailable. Falling back to polling."
+        );
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      stream?.close?.();
+    };
+  }, [loading, token]);
+
+  useEffect(() => {
+    if (realtimeMode !== "fallback" || !token) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      getPaymentSummary(token)
+        .then((data) => {
+          setSummary(data);
+        })
+        .catch(() => {
+          // Polling is best-effort and the current UI message stays visible.
+        });
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [realtimeMode, token]);
+
   const handlePayment = async () => {
     setPaying(true);
     setError("");
 
     try {
-      const paidSummary = await completePayment(token);
-      navigate(`/payment/${token}/success`, {
-        replace: true,
-        state: { summary: paidSummary },
+      // Stripe test card for demo checkout: 4242 4242 4242 4242, any future expiry, any CVC.
+      const session = await createPublicStripeCheckoutSession({
+        flowType: "ORGANIZATION_REQUEST",
+        paymentToken: token,
+        customerEmail: summary?.contactEmail || summary?.adminEmail || "",
+        customerName: summary?.contactPersonName || summary?.organizationName || "",
       });
+
+      if (!session?.checkoutUrl) {
+        throw new Error("Stripe checkout URL was not returned by the backend.");
+      }
+
+      window.location.assign(session.checkoutUrl);
     } catch (paymentError) {
       setError(paymentError.message || "Payment could not be completed.");
       setPaying(false);
@@ -74,6 +157,9 @@ function PaymentPage() {
   }
 
   const alreadyPaid = summary?.paymentStatus === "PAID" || summary?.requestStatus === "APPROVED";
+  const successHref = paymentEvent?.stripeSessionId
+    ? `/stripe/success?session_id=${encodeURIComponent(paymentEvent.stripeSessionId)}`
+    : `/payment/${token}/success`;
 
   return (
     <div className="payment-page">
@@ -88,6 +174,12 @@ function PaymentPage() {
         </div>
 
         {error && <div className="payment-error">{error}</div>}
+        {realtimeMessage && realtimeMode === "fallback" && (
+          <div className="payment-info">{realtimeMessage}</div>
+        )}
+        {realtimeMessage && realtimeMode === "live" && alreadyPaid && (
+          <div className="payment-success-banner">{realtimeMessage}</div>
+        )}
 
         <div className="payment-summary-grid">
           <div className="payment-summary-item">
@@ -124,18 +216,22 @@ function PaymentPage() {
 
         <div className="payment-actions">
           {alreadyPaid ? (
-            <Link to={`/payment/${token}/success`} state={{ summary }} className="payment-primary-button">
-              Continue
+            <Link to={successHref} className="payment-primary-button">
+              View payment result
             </Link>
           ) : (
             <button type="button" onClick={handlePayment} disabled={paying}>
-              {paying ? "Processing payment..." : `Pay ${formatMoney(summary.quoteTotal)}`}
+              {paying ? "Opening Stripe Checkout..." : `Pay with Stripe ${formatMoney(summary.quoteTotal)}`}
             </button>
           )}
           <Link to="/" className="payment-link-button">
             Back to Civox
           </Link>
         </div>
+
+        <p className="payment-assumptions">
+          Demo mode only. Use the Stripe test card <strong>4242 4242 4242 4242</strong> with any future expiry date and any CVC.
+        </p>
       </section>
     </div>
   );
@@ -148,6 +244,34 @@ function Line({ label, value, strong = false }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function mergePaymentSummary(summary, event) {
+  if (!summary) {
+    return {
+      organizationName: event.organizationName,
+      desiredSlug: event.desiredSlug,
+      contactEmail: event.contactEmail,
+      adminEmail: event.adminEmail,
+      paymentStatus: event.paymentStatus,
+      requestStatus: event.status,
+      paidAt: event.paidAt,
+      activatedAt: event.activatedAt,
+      stripeSessionId: event.stripeSessionId,
+      organizationCreatedId: event.organizationCreatedId,
+    };
+  }
+
+  return {
+    ...summary,
+    paymentStatus: event.paymentStatus || summary.paymentStatus,
+    requestStatus: event.status || summary.requestStatus,
+    paidAt: event.paidAt || summary.paidAt,
+    activatedAt: event.activatedAt || summary.activatedAt,
+    stripeSessionId: event.stripeSessionId || summary.stripeSessionId,
+    organizationCreatedId:
+      event.organizationCreatedId !== undefined ? event.organizationCreatedId : summary.organizationCreatedId,
+  };
 }
 
 export default PaymentPage;

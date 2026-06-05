@@ -151,7 +151,13 @@ function SaasBillingInvoicesPage() {
           <SaasStatusBadge status="SUCCESS" label="Live" />
         </div>
         <div className="saas-panel__body">
-          <SaasTrendChart data={revenueTrend} />
+          <SaasTrendChart
+            data={revenueTrend}
+            title="Recurring revenue evolution"
+            xAxisLabel="Month"
+            yAxisLabel="MRR (USD)"
+            valueFormatter={(value) => formatMoney(value * 1000)}
+          />
         </div>
       </section>
 

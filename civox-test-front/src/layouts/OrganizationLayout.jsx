@@ -11,6 +11,7 @@ import { getCurrentOrganization } from "../services/organizationService";
 import {
   getCurrentOrganizationSettings,
   getCurrentOrganizationModules,
+  getCurrentOrganizationContent,
 } from "../services/organizationDynamicService";
 import { clearTokens, getAccessToken } from "../utils/tokenStorage";
 import {
@@ -20,12 +21,17 @@ import {
   canOpenBackOffice,
   canRequestModules,
 } from "../utils/rbac";
+import {
+  getModuleContentType,
+  isModuleFrontOfficeVisible,
+} from "../utils/moduleNavigation";
 
 function OrganizationLayout() {
   const location = useLocation();
   const [organization, setOrganization] = useState(null);
   const [settings, setSettings] = useState(null);
   const [modules, setModules] = useState([]);
+  const [moduleInsights, setModuleInsights] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
@@ -61,7 +67,11 @@ function OrganizationLayout() {
 
         setOrganization(organizationData);
         setSettings(settingsData);
-        setModules(modulesData);
+        const frontOfficeModules = (Array.isArray(modulesData) ? modulesData : []).filter(
+          isModuleFrontOfficeVisible
+        );
+        setModules(frontOfficeModules);
+        setModuleInsights(await loadModuleInsights(frontOfficeModules));
         await refreshCurrentUser();
       } catch (error) {
         console.error(error);
@@ -140,6 +150,7 @@ function OrganizationLayout() {
     settings,
     setSettings,
     modules,
+    moduleInsights,
     currentUser,
     setCurrentUser,
     refreshCurrentUser,
@@ -396,6 +407,43 @@ function OrganizationLayout() {
       </footer>
     </div>
   );
+}
+
+async function loadModuleInsights(modules = []) {
+  const moduleEntries = (modules || [])
+    .filter((module) => module?.moduleCode)
+    .map((module) => ({
+      moduleCode: module.moduleCode,
+      contentType: getModuleContentType(module.moduleCode),
+    }))
+    .filter((entry) => Boolean(entry.contentType));
+
+  const results = await Promise.all(
+    moduleEntries.map(async (entry) => {
+      try {
+        const content = await getCurrentOrganizationContent(entry.contentType);
+        const firstItem = Array.isArray(content) ? content[0] : null;
+        const responseCount = Array.isArray(content)
+          ? content.reduce(
+            (sum, item) => sum + Number(item?.totalResponses || 0),
+            0
+          )
+          : 0;
+        return [
+          entry.moduleCode,
+          {
+            contentCount: Array.isArray(content) ? content.length : 0,
+            responseCount,
+            latestCreatedAt: firstItem?.createdAt || null,
+          },
+        ];
+      } catch {
+        return [entry.moduleCode, { contentCount: 0, responseCount: 0, latestCreatedAt: null }];
+      }
+    })
+  );
+
+  return Object.fromEntries(results);
 }
 
 export default OrganizationLayout;

@@ -10,10 +10,10 @@ import {
 } from "../components/organization/OrganizationUi";
 import {
   createModuleRequest,
+  getOrganizationModuleCatalog,
   getOrganizationBackOfficeModules,
   getOrganizationModuleRequests,
 } from "../services/orgBackOfficeService";
-import { getPublicModules } from "../services/organizationRequestService";
 
 function OrganizationModuleRequestPage() {
   const { organization } = useOutletContext();
@@ -33,7 +33,7 @@ function OrganizationModuleRequestPage() {
       const [modulesData, requestsData, catalogData] = await Promise.all([
         getOrganizationBackOfficeModules(organization.id),
         getOrganizationModuleRequests(organization.id),
-        getPublicModules(),
+        getOrganizationModuleCatalog(organization.id),
       ]);
 
       setGrantedModules(modulesData);

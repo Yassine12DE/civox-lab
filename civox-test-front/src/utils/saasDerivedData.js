@@ -150,6 +150,18 @@ export function buildQuotesPayments(organizationRequests = []) {
       paymentStatus: String(request.paymentStatus || "NOT_STARTED").toUpperCase(),
       expiresAt: request.quoteSentAt || request.createdAt,
       modules: (request.requestedModuleCodes || []).length,
+      moduleCodes: request.requestedModuleCodes || [],
+      quoteBaseFee: Number(request.quoteBaseFee || 0),
+      quoteUserFee: Number(request.quoteUserFee || 0),
+      quoteModuleFee: Number(request.quoteModuleFee || 0),
+      quoteSetupFee: Number(request.quoteSetupFee || 0),
+      quoteAssumptions: request.quoteAssumptions || "",
+      notes: request.additionalNotes || request.reviewComment || request.approvalNotes || "",
+      requestStatus: request.requestStatus || "",
+      quoteStatus: request.quoteStatus || "",
+      createdAt: request.createdAt || "",
+      approvedAt: request.approvedAt || "",
+      quoteSentAt: request.quoteSentAt || "",
       paymentUrl: request.paymentUrl || "",
     }))
     .sort((left, right) => toTimestamp(right.expiresAt) - toTimestamp(left.expiresAt));

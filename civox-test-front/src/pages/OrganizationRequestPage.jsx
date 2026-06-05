@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { modules as fallbackModules } from "../data/modules";
 import { getPublicModules, submitOrganizationRequest } from "../services/organizationRequestService";
 import "../styles/organizationRequestPage.css";
 
@@ -63,7 +62,7 @@ function validateForm(formData) {
 
 function OrganizationRequestPage() {
   const [formData, setFormData] = useState(initialFormData);
-  const [availableModules, setAvailableModules] = useState(fallbackModules);
+  const [availableModules, setAvailableModules] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,11 +73,14 @@ function OrganizationRequestPage() {
 
     getPublicModules()
       .then((modules) => {
-        if (!active || !Array.isArray(modules) || modules.length === 0) return;
-        setAvailableModules(modules);
+        if (!active) return;
+        setAvailableModules(Array.isArray(modules) ? modules : []);
       })
       .catch(() => {
-        if (active) setAvailableModules(fallbackModules);
+        if (active) {
+          setAvailableModules([]);
+          setError("Module catalog is temporarily unavailable. Please try again.");
+        }
       });
 
     return () => {
@@ -93,6 +95,7 @@ function OrganizationRequestPage() {
         .map((module) => module.name),
     [availableModules, formData.requestedModuleCodes]
   );
+  const moduleCatalogUnavailable = availableModules.length === 0;
 
   const updateField = (name, value) => {
     setFormData((prev) => ({
@@ -402,6 +405,11 @@ function OrganizationRequestPage() {
                       <span>{module.description}</span>
                     </button>
                   ))}
+                  {moduleCatalogUnavailable && (
+                    <div className="organization-request-error">
+                      Module catalog is unavailable. Please retry in a moment.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -447,7 +455,7 @@ function OrganizationRequestPage() {
               After submission, Civox will email the contact person and place this request in
               the SUPER_ADMIN review queue.
             </p>
-            <button type="submit" disabled={loading}>
+            <button type="submit" disabled={loading || moduleCatalogUnavailable}>
               {loading ? "Submitting request..." : "Submit access request"}
             </button>
           </div>

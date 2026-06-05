@@ -7,27 +7,19 @@ import {
   OrganizationNotice,
   PremiumStatusBadge,
 } from "../components/organization/OrganizationUi";
-import { getModuleCreateRoute, getModuleRoute } from "../utils/moduleNavigation";
+import {
+  getModuleCategory,
+  getModuleContentType,
+  getModuleCreateRoute,
+  getModuleResponseLabel,
+  getModuleRoute,
+} from "../utils/moduleNavigation";
 import { canCreateFromModule } from "../utils/rbac";
 import {
   getOrganizationContent,
   saveOrganizationContentResponse,
 } from "../services/orgBackOfficeService";
-
-const fallbackDetail = {
-  title: "2026 Community Budget Allocation",
-  body:
-    "Help decide how resources should be distributed across infrastructure improvements, educational programs, and sustainability initiatives.",
-  createdByName: "Organization staff",
-  options: ["Infrastructure First", "Balanced Approach", "Future-Focused"],
-  optionDetails: {
-    "Infrastructure First": "Focus on roads, facilities, and public infrastructure.",
-    "Balanced Approach": "Invest proportionally across every priority area.",
-    "Future-Focused": "Prioritize green initiatives, learning, and long-term resilience.",
-  },
-  votes: [487, 623, 137],
-  percentages: [39, 50, 11],
-};
+import { getCurrentOrganizationContent } from "../services/organizationDynamicService";
 
 function OrganizationModulePage() {
   const { moduleSlug } = useParams();
@@ -38,14 +30,15 @@ function OrganizationModulePage() {
   const [savingContentId, setSavingContentId] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasResponded, setHasResponded] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const module = modules.find((candidate) =>
     moduleSlugMatches(candidate.moduleCode, moduleSlug)
   );
-  const contentType = module ? getContentTypeForModule(module.moduleCode) : null;
+  const contentType = module ? getModuleContentType(module.moduleCode) : null;
 
   const loadContent = useCallback(async () => {
-    if (!currentUser || !organization?.id || !contentType) {
+    if (!organization?.id || !contentType) {
       setItems([]);
       return;
     }
@@ -53,47 +46,25 @@ function OrganizationModulePage() {
     try {
       setLoadingContent(true);
       setContentError("");
-      const data = await getOrganizationContent(organization.id, contentType);
-      setItems(data);
+      const data = currentUser
+        ? await getOrganizationContent(organization.id, contentType)
+        : await getCurrentOrganizationContent(contentType);
+      setItems(Array.isArray(data) ? data : []);
     } catch (error) {
       setContentError(error.message || "Failed to load module content");
     } finally {
       setLoadingContent(false);
     }
-  }, [currentUser, organization?.id, contentType]);
+  }, [contentType, currentUser, organization?.id]);
 
   useEffect(() => {
     loadContent();
   }, [loadContent]);
 
-  const displayItem = useMemo(() => {
-    const item = items[0];
-    if (item) {
-      return {
-        ...item,
-        body: item.body || item.description || fallbackDetail.body,
-        options: item.options?.length ? item.options : fallbackDetail.options,
-        isReal: true,
-      };
-    }
-
-    return {
-      id: "static-preview",
-      title: module?.moduleName || fallbackDetail.title,
-      body: module?.moduleDescription || fallbackDetail.body,
-      createdByName: "Organization staff",
-      options: getFallbackOptions(module?.moduleCode),
-      isReal: false,
-    };
-  }, [items, module]);
+  const displayItem = useMemo(() => items[0] || null, [items]);
 
   const saveResponse = async (payload) => {
-    if (!currentUser) {
-      return;
-    }
-
-    if (!displayItem.isReal || !organization?.id || !contentType) {
-      setHasResponded(true);
+    if (!currentUser || !displayItem || !organization?.id || !contentType) {
       return;
     }
 
@@ -119,6 +90,15 @@ function OrganizationModulePage() {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setNotice("Link copied to clipboard.");
+    } catch {
+      setNotice("Could not copy the link. You can copy it directly from the address bar.");
+    }
+  };
+
   if (!module) {
     return (
       <div className="premium-page">
@@ -139,16 +119,67 @@ function OrganizationModulePage() {
 
   const createRoute = getModuleCreateRoute(module.moduleCode);
   const canCreate = createRoute && canCreateFromModule(currentUser, module.moduleCode);
-  const responseLabel = getResponseLabelForModule(module.moduleCode);
+
+  if (!contentType) {
+    return (
+      <div className="premium-page">
+        <section className="premium-section">
+          <div className="premium-container">
+            <OrganizationEmptyState
+              title={`${module.moduleName} is available`}
+              message="This module is enabled but does not yet expose interactive content in this tenant interface."
+              actionLabel="Back to modules"
+              actionTo="/modules"
+              icon="layers"
+            />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (loadingContent) {
+    return (
+      <div className="premium-page">
+        <section className="premium-section">
+          <div className="premium-container">
+            <OrganizationLoadingState
+              title="Loading module content"
+              message="Fetching the latest published item."
+            />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!displayItem) {
+    return (
+      <div className="premium-page">
+        <section className="premium-section">
+          <div className="premium-container">
+            <OrganizationEmptyState
+              title="No published content yet"
+              message="This module is enabled, but no content has been published."
+              actionLabel="Back to modules"
+              actionTo="/modules"
+              icon="file"
+            />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   const options = normalizeOptions(displayItem, module.moduleCode);
-  const totalVotes = options.reduce((sum, option) => sum + option.votes, 0) || 1247;
-  const participation = Math.max(38, Math.min(92, Math.round(totalVotes / 20)));
+  const totalVotes = Number(displayItem.totalResponses || 0);
+  const participation = totalVotes > 0 ? 100 : 0;
   const responded =
     hasResponded ||
     Boolean(
       displayItem.myAnswer ||
-        (displayItem.myParticipating !== null && displayItem.myParticipating !== undefined) ||
-        displayItem.myReaction
+      (displayItem.myParticipating !== null && displayItem.myParticipating !== undefined) ||
+      displayItem.myReaction
     );
 
   return (
@@ -166,108 +197,100 @@ function OrganizationModulePage() {
         <header className="premium-detail-header">
           <div className="premium-detail-header__badges">
             <span className="premium-status premium-status--neutral">
-              {getCategory(module.moduleCode)}
+              {getModuleCategory(module.moduleCode)}
             </span>
             <PremiumStatusBadge status="Active">Active</PremiumStatusBadge>
-            <span className="premium-status premium-status--neutral">{responseLabel}</span>
+            <span className="premium-status premium-status--neutral">
+              {getModuleResponseLabel(module.moduleCode)}
+            </span>
           </div>
 
           <h1>{displayItem.title}</h1>
-          <p>{displayItem.body}</p>
+          <p>{displayItem.body || module.moduleDescription || "Published organization content."}</p>
         </header>
 
-        {contentError && <OrganizationNotice tone="error">{contentError}</OrganizationNotice>}
+        {(contentError || notice) && (
+          <>
+            {contentError && <OrganizationNotice tone="error">{contentError}</OrganizationNotice>}
+            {notice && <OrganizationNotice tone="success">{notice}</OrganizationNotice>}
+          </>
+        )}
 
         <div className="premium-detail-layout">
           <main className="premium-detail-main">
             {!currentUser && (
               <div className="premium-alert-card">
                 <h3>Sign in to participate</h3>
-                <p>
-                  This preview stays visible, but responses are saved only after you sign in
-                  with your organization account.
-                </p>
+                <p>Content is public, but responses are saved only for authenticated tenant users.</p>
               </div>
             )}
 
-            {loadingContent ? (
-              <OrganizationLoadingState
-                title="Loading module content"
-                message="Fetching the latest published items."
-              />
-            ) : (
-              <section className="premium-panel">
-                <h2>{responded ? "Your Response" : getChooseTitle(module.moduleCode)}</h2>
+            <section className="premium-panel">
+              <h2>{responded ? "Your Response" : getChooseTitle(module.moduleCode)}</h2>
 
-                <div className="premium-option-list">
-                  {options.map((option) => {
-                    const isSelected =
-                      selectedOption === option.value ||
-                      displayItem.myAnswer === option.value ||
-                      (option.participating !== undefined &&
-                        displayItem.myParticipating === option.participating) ||
-                      (option.reaction !== undefined && Boolean(displayItem.myReaction && option.reaction));
-                    const showResults = responded || displayItem.isPlaceholder;
+              <div className="premium-option-list">
+                {options.map((option) => {
+                  const isSelected =
+                    selectedOption === option.value ||
+                    displayItem.myAnswer === option.value ||
+                    (option.participating !== undefined &&
+                      displayItem.myParticipating === option.participating) ||
+                    (option.reaction !== undefined && Boolean(displayItem.myReaction && option.reaction));
+                  const showResults = responded || totalVotes > 0;
 
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`premium-vote-option ${isSelected ? "is-selected" : ""}`}
-                        disabled={!currentUser || savingContentId === displayItem.id || responded}
-                        onClick={() => setSelectedOption(option.value)}
-                      >
-                        {showResults && (
-                          <span
-                            className="premium-vote-option__bar"
-                            style={{ width: `${option.percentage}%` }}
-                          />
-                        )}
-                        <span className="premium-vote-option__content">
-                          <span>
-                            <h3>{option.label}</h3>
-                            <p>{option.description}</p>
-                          </span>
-                          {showResults && (
-                            <span className="premium-vote-option__result">
-                              <strong>{option.percentage}%</strong>
-                              <span>{option.votes} votes</span>
-                            </span>
-                          )}
-                          {!responded && isSelected && <OrgIcon name="checkCircle" size={24} />}
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`premium-vote-option ${isSelected ? "is-selected" : ""}`}
+                      disabled={!currentUser || savingContentId === displayItem.id || responded}
+                      onClick={() => setSelectedOption(option.value)}
+                    >
+                      {showResults && (
+                        <span
+                          className="premium-vote-option__bar"
+                          style={{ width: `${option.percentage}%` }}
+                        />
+                      )}
+                      <span className="premium-vote-option__content">
+                        <span>
+                          <h3>{option.label}</h3>
+                          <p>{option.description}</p>
                         </span>
-                      </button>
-                    );
-                  })}
+                        {showResults && (
+                          <span className="premium-vote-option__result">
+                            <strong>{option.percentage}%</strong>
+                            <span>{option.votes} responses</span>
+                          </span>
+                        )}
+                        {!responded && isSelected && <OrgIcon name="checkCircle" size={24} />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {!responded && currentUser && (
+                <div style={{ marginTop: 28 }}>
+                  <button
+                    type="button"
+                    className="premium-gradient-button"
+                    disabled={!selectedOption || savingContentId === displayItem.id}
+                    onClick={() => saveResponse(buildPayload(module.moduleCode, selectedOption))}
+                  >
+                    {selectedOption ? getSubmitLabel(module.moduleCode) : "Select an option to continue"}
+                  </button>
                 </div>
+              )}
 
-                {!responded && (
-                  <div style={{ marginTop: 28 }}>
-                    {currentUser ? (
-                      <button
-                        type="button"
-                        className="premium-gradient-button"
-                        disabled={!selectedOption || savingContentId === displayItem.id}
-                        onClick={() => saveResponse(buildPayload(module.moduleCode, selectedOption))}
-                      >
-                        {selectedOption ? getSubmitLabel(module.moduleCode) : "Select an option to continue"}
-                      </button>
-                    ) : (
-                      <Link to="/login" className="premium-gradient-button">
-                        Sign in to participate
-                      </Link>
-                    )}
-                  </div>
-                )}
-
-                {responded && (
-                  <div className="premium-success-card" style={{ marginTop: 22 }}>
-                    <strong>Thank you for participating.</strong>
-                    <p>Your response has been recorded for this organization workspace.</p>
-                  </div>
-                )}
-              </section>
-            )}
+              {!responded && !currentUser && (
+                <div style={{ marginTop: 28 }}>
+                  <Link to="/login" className="premium-gradient-button">
+                    Sign in to participate
+                  </Link>
+                </div>
+              )}
+            </section>
 
             <section className="premium-panel">
               <div className="premium-detail-header__badges">
@@ -280,10 +303,6 @@ function OrganizationModulePage() {
                 {module.moduleDescription ||
                   "This participation space is configured by the organization and published through CIVOX."}
               </p>
-              <p>
-                Published content, response permissions, and visibility stay connected to
-                the tenant context for {organization?.name}.
-              </p>
               {canCreate && (
                 <Link to={createRoute} className="premium-soft-button" style={{ marginTop: 18 }}>
                   Create in back-office
@@ -294,12 +313,12 @@ function OrganizationModulePage() {
 
           <aside className="premium-detail-sidebar">
             <section className="premium-panel">
-              <h3>Vote Statistics</h3>
+              <h3>Live Statistics</h3>
               <div className="premium-stat-list">
                 <div className="premium-stat-list__item">
                   <span className="premium-stat-list__label">
                     <OrgIcon name="users" size={16} />
-                    Total Participants
+                    Total Responses
                   </span>
                   <strong>{totalVotes.toLocaleString()}</strong>
                 </div>
@@ -307,7 +326,7 @@ function OrganizationModulePage() {
                 <div className="premium-stat-list__item">
                   <span className="premium-stat-list__label">
                     <OrgIcon name="trending" size={16} />
-                    Participation Rate
+                    Participation
                   </span>
                   <strong>{participation}%</strong>
                   <div className="premium-progress">
@@ -317,20 +336,16 @@ function OrganizationModulePage() {
 
                 <div className="premium-timeline">
                   <div>
-                    <span>Started:</span>
-                    <strong>April 1, 2026</strong>
+                    <span>Published:</span>
+                    <strong>{formatDate(displayItem.createdAt) || "-"}</strong>
                   </div>
                   <div>
-                    <span>Ends:</span>
-                    <strong>April 20, 2026</strong>
-                  </div>
-                  <div>
-                    <span>Time Remaining:</span>
-                    <strong>5 days</strong>
+                    <span>Author:</span>
+                    <strong>{displayItem.createdByName || "Organization staff"}</strong>
                   </div>
                 </div>
 
-                <button type="button" className="premium-soft-button">
+                <button type="button" className="premium-soft-button" onClick={handleShare}>
                   <OrgIcon name="share" size={16} />
                   Share This Module
                 </button>
@@ -344,60 +359,49 @@ function OrganizationModulePage() {
 }
 
 function normalizeOptions(item, moduleCode) {
+  const totalResponses = Number(item.totalResponses || 0);
+  const breakdown = item.responseBreakdown || {};
+
   if (moduleCode === "CONFERENCE") {
+    const participating = Number(breakdown.participating || 0);
+    const notParticipating = Number(breakdown.notParticipating || 0);
     return [
-      {
-        value: "participate",
-        label: "Participate",
-        description: "I plan to participate in this consultation or event.",
-        votes: 892,
-        percentage: 64,
-        participating: true,
-      },
-      {
-        value: "not-participating",
-        label: "Not participate",
-        description: "I cannot participate, but I want to keep following the topic.",
-        votes: 501,
-        percentage: 36,
-        participating: false,
-      },
+      buildOption("participate", "Participate", "I plan to participate.", participating, totalResponses, { participating: true }),
+      buildOption("not-participating", "Not participate", "I cannot participate right now.", notParticipating, totalResponses, { participating: false }),
     ];
   }
 
   if (moduleCode === "YOUTHSPACE") {
+    const reacted = Number(breakdown.reacted || 0);
+    const follow = Number(breakdown.follow || 0);
     return [
-      {
-        value: "react",
-        label: "React",
-        description: "Save a reaction and show that this update matters to you.",
-        votes: 456,
-        percentage: 74,
-        reaction: true,
-      },
-      {
-        value: "follow",
-        label: "Follow updates",
-        description: "Keep this item in mind for future youth-space updates.",
-        votes: 160,
-        percentage: 26,
-        reaction: false,
-      },
+      buildOption("react", "React", "Save a reaction to this update.", reacted, totalResponses, { reaction: true }),
+      buildOption("follow", "Follow updates", "Keep following this topic.", follow, totalResponses, { reaction: false }),
     ];
   }
 
-  return item.options.map((option, index) => {
-    const votes = fallbackDetail.votes[index] || 100 + index * 64;
-    const percentage = fallbackDetail.percentages[index] || Math.max(10, 55 - index * 12);
+  const options = Array.isArray(item.options) ? item.options : [];
+  return options.map((option) =>
+    buildOption(
+      option,
+      option,
+      "Review this option and cast your vote.",
+      Number(breakdown[option] || 0),
+      totalResponses
+    )
+  );
+}
 
-    return {
-      value: option,
-      label: option,
-      description: fallbackDetail.optionDetails[option] || "Review this option and cast your vote.",
-      votes,
-      percentage,
-    };
-  });
+function buildOption(value, label, description, votes, totalResponses, extra = {}) {
+  const percentage = totalResponses > 0 ? Math.round((votes / totalResponses) * 100) : 0;
+  return {
+    value,
+    label,
+    description,
+    votes,
+    percentage,
+    ...extra,
+  };
 }
 
 function buildPayload(moduleCode, selectedOption) {
@@ -412,12 +416,6 @@ function buildPayload(moduleCode, selectedOption) {
   return { answer: selectedOption };
 }
 
-function getFallbackOptions(moduleCode) {
-  if (moduleCode === "CONFERENCE") return ["participate", "not-participating"];
-  if (moduleCode === "YOUTHSPACE") return ["react", "follow"];
-  return fallbackDetail.options;
-}
-
 function moduleSlugMatches(moduleCode, moduleSlug) {
   if (getModuleRoute(moduleCode).endsWith(`/modules/${moduleSlug}`)) {
     return true;
@@ -430,26 +428,6 @@ function moduleSlugMatches(moduleCode, moduleSlug) {
   };
 
   return aliases[moduleCode]?.includes(moduleSlug) || false;
-}
-
-function getContentTypeForModule(moduleCode) {
-  const contentTypes = {
-    VOTE: "vote",
-    CONFERENCE: "concertation",
-    YOUTHSPACE: "youth-news",
-  };
-
-  return contentTypes[moduleCode] || null;
-}
-
-function getResponseLabelForModule(moduleCode) {
-  const labels = {
-    VOTE: "Vote",
-    CONFERENCE: "Attend",
-    YOUTHSPACE: "React",
-  };
-
-  return labels[moduleCode] || "View";
 }
 
 function getChooseTitle(moduleCode) {
@@ -472,14 +450,17 @@ function getSubmitLabel(moduleCode) {
   return labels[moduleCode] || "Submit Response";
 }
 
-function getCategory(moduleCode) {
-  const categories = {
-    VOTE: "Budget & Finance",
-    CONFERENCE: "Consultation",
-    YOUTHSPACE: "Community News",
-  };
-
-  return categories[moduleCode] || "Organization Module";
+function formatDate(value) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("en", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return "";
+  }
 }
 
 export default OrganizationModulePage;

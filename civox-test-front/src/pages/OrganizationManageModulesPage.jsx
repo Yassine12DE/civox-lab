@@ -11,68 +11,47 @@ import {
 } from "../components/organization/OrganizationUi";
 import {
   getOrganizationBackOfficeModules,
+  getOrganizationContent,
+  setOrganizationContentPublished,
   updateOrganizationModuleVisibility,
 } from "../services/orgBackOfficeService";
-import { getModuleCreateRoute } from "../utils/moduleNavigation";
+import {
+  getCurrentOrganizationContent,
+  getCurrentOrganizationSettings,
+} from "../services/organizationDynamicService";
+import {
+  getModuleContentType,
+  getModuleCreateRoute,
+  getModuleIcon,
+  isModuleBackOfficeVisible,
+  getModuleTone,
+} from "../utils/moduleNavigation";
 
 const tabs = [
-  { id: "all", label: "All Content" },
-  { id: "votes", label: "Votes" },
-  { id: "consultations", label: "Consultations" },
-  { id: "news", label: "News" },
-];
-
-const placeholderContent = [
-  {
-    id: "static-budget",
-    moduleCode: "VOTE",
-    moduleName: "Community Budget Allocation 2026",
-    moduleDescription: "Decision on community development fund distribution",
-    status: "active",
-    participants: 1247,
-    views: 3421,
-    engagement: 68,
-    created: "Apr 1, 2026",
-    deadline: "Apr 20, 2026",
-    author: "Admin Team",
-    isPlaceholder: true,
-  },
-  {
-    id: "static-park",
-    moduleCode: "CONFERENCE",
-    moduleName: "Public Space Renovation Ideas",
-    moduleDescription: "Gathering community input for shared space improvements",
-    status: "active",
-    participants: 892,
-    views: 2103,
-    engagement: 52,
-    created: "Mar 28, 2026",
-    deadline: "Apr 27, 2026",
-    author: "Moderator",
-    isPlaceholder: true,
-  },
-  {
-    id: "static-news",
-    moduleCode: "YOUTHSPACE",
-    moduleName: "Youth Programs Expansion Announcement",
-    moduleDescription: "New youth programs and activities",
-    status: "published",
-    participants: 0,
-    views: 1234,
-    engagement: 0,
-    created: "Apr 10, 2026",
-    deadline: "-",
-    author: "Organization staff",
-    isPlaceholder: true,
-  },
+  { id: "all", label: "All Modules" },
+  { id: "enabled", label: "Enabled" },
+  { id: "hidden", label: "Hidden" },
+  { id: "unsupported", label: "No Content Type" },
 ];
 
 function OrganizationManageModulesPage() {
   const { organization } = useOutletContext();
   const [modules, setModules] = useState([]);
+  const [contentByModule, setContentByModule] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [busyKey, setBusyKey] = useState("");
+  const [previewState, setPreviewState] = useState({
+    open: false,
+    loading: false,
+    error: "",
+    item: null,
+    moduleName: "",
+    moduleCode: "",
+    publicItem: null,
+    branding: null,
+  });
 
   const loadData = useCallback(async () => {
     if (!organization?.id) return;
@@ -80,9 +59,28 @@ function OrganizationManageModulesPage() {
     try {
       setLoading(true);
       const modulesData = await getOrganizationBackOfficeModules(organization.id);
-      setModules(modulesData);
+      const normalizedModules = (Array.isArray(modulesData) ? modulesData : []).filter(
+        isModuleBackOfficeVisible
+      );
+      setModules(normalizedModules);
+
+      const contentEntries = await Promise.all(
+        normalizedModules.map(async (module) => {
+          const contentType = getModuleContentType(module.moduleCode);
+          if (!contentType || !module.enabledByOrganization) {
+            return [module.moduleCode, []];
+          }
+
+          try {
+            const items = await getOrganizationContent(organization.id, contentType);
+            return [module.moduleCode, Array.isArray(items) ? items : []];
+          } catch {
+            return [module.moduleCode, []];
+          }
+        })
+      );
+      setContentByModule(Object.fromEntries(contentEntries));
     } catch (loadError) {
-      console.error(loadError);
       setError(loadError.message || "Failed to load modules");
     } finally {
       setLoading(false);
@@ -93,24 +91,125 @@ function OrganizationManageModulesPage() {
     loadData();
   }, [loadData]);
 
-  const handleToggleVisibility = async (moduleCode, currentValue) => {
+  const handleToggleVisibility = async (moduleCode, enabledByOrganization) => {
     if (!organization?.id) return;
-
+    setBusyKey(`visibility-${moduleCode}`);
+    setError("");
     try {
-      await updateOrganizationModuleVisibility(organization.id, moduleCode, !currentValue);
+      await updateOrganizationModuleVisibility(
+        organization.id,
+        moduleCode,
+        !enabledByOrganization
+      );
       await loadData();
     } catch (toggleError) {
-      console.error(toggleError);
-      setError("Failed to update module visibility");
+      setError(toggleError.message || "Failed to update module visibility");
+    } finally {
+      setBusyKey("");
     }
   };
 
-  const content = useMemo(() => buildContentCards(modules), [modules]);
-  const filteredContent = content.filter((item) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "votes") return item.moduleCode === "VOTE";
-    if (activeTab === "consultations") return item.moduleCode === "CONFERENCE";
-    if (activeTab === "news") return item.moduleCode === "YOUTHSPACE";
+  const handleTogglePublished = async (moduleCode, item) => {
+    if (!organization?.id || !item?.id) return;
+    const contentType = getModuleContentType(moduleCode);
+    if (!contentType) return;
+
+    setBusyKey(`publish-${item.id}`);
+    setError("");
+    try {
+      await setOrganizationContentPublished(
+        organization.id,
+        contentType,
+        item.id,
+        !item.published
+      );
+      await loadData();
+    } catch (toggleError) {
+      setError(toggleError.message || "Failed to update content publication");
+    } finally {
+      setBusyKey("");
+    }
+  };
+
+  const openPagePreview = async (moduleCode, moduleName, item) => {
+    const contentType = getModuleContentType(moduleCode);
+    if (!contentType || !item?.id) return;
+
+    setPreviewState({
+      open: true,
+      loading: true,
+      error: "",
+      item,
+      moduleName,
+      moduleCode,
+      publicItem: null,
+      branding: null,
+    });
+
+    try {
+      const [publicContent, branding] = await Promise.all([
+        getCurrentOrganizationContent(contentType),
+        getCurrentOrganizationSettings(),
+      ]);
+      const matchedItem = (Array.isArray(publicContent) ? publicContent : []).find(
+        (currentItem) => currentItem.id === item.id
+      );
+
+      setPreviewState((current) => ({
+        ...current,
+        loading: false,
+        publicItem: matchedItem || null,
+        branding: branding || null,
+      }));
+    } catch (previewError) {
+      setPreviewState((current) => ({
+        ...current,
+        loading: false,
+        error: previewError.message || "Page preview could not be loaded.",
+      }));
+    }
+  };
+
+  const closePagePreview = () => {
+    setPreviewState({
+      open: false,
+      loading: false,
+      error: "",
+      item: null,
+      moduleName: "",
+      moduleCode: "",
+      publicItem: null,
+      branding: null,
+    });
+  };
+
+  const moduleCards = useMemo(
+    () =>
+      modules.map((module) => {
+        const contentItems = contentByModule[module.moduleCode] || [];
+        const latestItem = contentItems[0] || null;
+        const contentType = getModuleContentType(module.moduleCode);
+
+        return {
+          ...module,
+          contentType,
+          contentCount: contentItems.length,
+          latestItem,
+          status:
+            !module.grantedBySaas
+              ? "not-granted"
+              : module.enabledByOrganization
+                ? "enabled"
+                : "hidden",
+        };
+      }),
+    [contentByModule, modules]
+  );
+
+  const filteredModules = moduleCards.filter((item) => {
+    if (activeTab === "enabled") return item.status === "enabled";
+    if (activeTab === "hidden") return item.status === "hidden";
+    if (activeTab === "unsupported") return !item.contentType;
     return true;
   });
 
@@ -119,7 +218,7 @@ function OrganizationManageModulesPage() {
       <div className="premium-empty-center">
         <OrganizationLoadingState
           title="Loading content controls"
-          message="Fetching tenant grants and visibility settings."
+          message="Fetching tenant grants and module content."
         />
       </div>
     );
@@ -127,121 +226,134 @@ function OrganizationManageModulesPage() {
 
   const grantedCount = modules.filter((module) => module.grantedBySaas).length;
   const visibleCount = modules.filter((module) => module.enabledByOrganization).length;
-  const createRoute = content.find((item) => getModuleCreateRoute(item.moduleCode))?.moduleCode;
+  const totalContent = moduleCards.reduce((sum, module) => sum + module.contentCount, 0);
 
   return (
     <div className="premium-admin-page">
       <header className="premium-admin-page-header">
         <div>
           <h1>Content Management</h1>
-          <p>Create and manage votes, consultations, announcements, and module visibility</p>
+          <p>Control module visibility and publication in one synchronized flow.</p>
         </div>
-        {createRoute && (
-          <Link to={getModuleCreateRoute(createRoute)} className="premium-gradient-button">
-            <OrgIcon name="plus" size={20} />
-            Create Content
-          </Link>
-        )}
       </header>
 
       {error && <OrganizationNotice tone="error">{error}</OrganizationNotice>}
 
       <section className="premium-admin-stats" aria-label="Content summary">
-        <PremiumStatCard icon="layers" label="Total Content" value={String(content.length || 42)} />
-        <PremiumStatCard icon="power" label="Active Now" value={String(visibleCount || 16)} tone="secondary" />
-        <PremiumStatCard icon="eye" label="Total Views" value="24.8K" />
-        <PremiumStatCard icon="trending" label="Avg Engagement" value="62%" tone="secondary" />
+        <PremiumStatCard icon="layers" label="Granted modules" value={String(grantedCount)} />
+        <PremiumStatCard icon="eye" label="Visible modules" value={String(visibleCount)} tone="secondary" />
+        <PremiumStatCard icon="file" label="Published items" value={String(totalContent)} />
+        <PremiumStatCard icon="powerOff" label="Hidden modules" value={String(Math.max(grantedCount - visibleCount, 0))} tone="secondary" />
       </section>
 
       <section className="premium-form-card">
         <div className="premium-filter-tabs">
-          {tabs.map((tab) => {
-            const count = getTabCount(content, tab.id);
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={activeTab === tab.id ? "is-active" : ""}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-                <span style={{ marginLeft: 8 }}>{count}</span>
-              </button>
-            );
-          })}
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={activeTab === tab.id ? "is-active" : ""}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </section>
 
-      {filteredContent.length > 0 ? (
+      {filteredModules.length > 0 ? (
         <section className="premium-content-grid">
-          {filteredContent.map((item, index) => {
-            const info = getModuleInfo(item.moduleCode, index);
+          {filteredModules.map((item) => {
             const createHref = getModuleCreateRoute(item.moduleCode);
-
+            const latestItem = item.latestItem;
             return (
-              <article
-                key={item.id || `${item.moduleCode}-${index}`}
-                className={`premium-content-card ${info.tone === "secondary" ? "premium-content-card--secondary" : ""}`}
-              >
+              <article key={item.moduleCode} className="premium-content-card">
                 <div className="premium-content-card__header">
                   <div className="premium-module-card__top">
-                    <PremiumIconTile icon={info.icon} tone={info.tone} />
+                    <PremiumIconTile
+                      icon={getModuleIcon(item.moduleCode, "layers")}
+                      tone={getModuleTone(item.moduleCode, "primary")}
+                    />
                     <PremiumStatusBadge status={item.status}>
                       {formatStatus(item.status)}
                     </PremiumStatusBadge>
                   </div>
                   <h3>{item.moduleName}</h3>
-                  <p>{item.moduleDescription}</p>
+                  <p>{item.moduleDescription || "Organization module"}</p>
                 </div>
 
                 <div className="premium-content-card__body">
                   <div className="premium-card-stats">
                     <div>
-                      <span>Participants</span>
-                      <strong>{item.participants ? item.participants.toLocaleString() : "-"}</strong>
+                      <span>Content type</span>
+                      <strong>{item.contentType || "N/A"}</strong>
                     </div>
                     <div>
-                      <span>Views</span>
-                      <strong>{item.views ? item.views.toLocaleString() : "-"}</strong>
+                      <span>Published items</span>
+                      <strong>{item.contentCount}</strong>
                     </div>
                     <div>
-                      <span>Engagement</span>
-                      <strong>{item.engagement ? `${item.engagement}%` : "-"}</strong>
+                      <span>Visibility</span>
+                      <strong>{item.enabledByOrganization ? "Public" : "Hidden"}</strong>
                     </div>
                   </div>
 
-                  <div className="premium-meta-row" style={{ marginBottom: 20 }}>
-                    <span>Created: <strong>{item.created}</strong></span>
-                    <span>Deadline: <strong>{item.deadline}</strong></span>
-                  </div>
+                  {latestItem && (
+                    <div className="premium-meta-row" style={{ marginBottom: 20 }}>
+                      <span>
+                        Latest: <strong>{latestItem.title}</strong>
+                      </span>
+                    </div>
+                  )}
 
                   <div className="premium-card-actions">
-                    {createHref && !item.isPlaceholder && (
+                    {createHref && item.grantedBySaas && (
                       <Link to={createHref} className="premium-soft-button">
                         <OrgIcon name="edit" size={16} />
-                        Edit
+                        Create
                       </Link>
                     )}
-                    {!item.isPlaceholder && (
+                    {latestItem && item.contentType && (
                       <button
                         type="button"
-                        className={item.enabledByOrganization ? "premium-soft-button" : "premium-gradient-button"}
-                        disabled={!item.grantedBySaas}
-                        onClick={() => handleToggleVisibility(item.moduleCode, item.enabledByOrganization)}
+                        className="premium-soft-button premium-soft-button--neutral"
+                        onClick={() => openPagePreview(item.moduleCode, item.moduleName, latestItem)}
                       >
-                        <OrgIcon name={item.enabledByOrganization ? "powerOff" : "power"} size={16} />
-                        {item.enabledByOrganization ? "Hide" : "Show"}
+                        <OrgIcon name="eye" size={16} />
+                        Preview page
                       </button>
                     )}
-                    <button type="button" className="premium-soft-button">
-                      <OrgIcon name="copy" size={16} />
+                    <button
+                      type="button"
+                      className={item.enabledByOrganization ? "premium-warning-button" : "premium-success-button"}
+                      disabled={!item.grantedBySaas || busyKey === `visibility-${item.moduleCode}`}
+                      onClick={() => handleToggleVisibility(item.moduleCode, item.enabledByOrganization)}
+                    >
+                      <OrgIcon name={item.enabledByOrganization ? "powerOff" : "power"} size={16} />
+                      {busyKey === `visibility-${item.moduleCode}`
+                        ? "Saving..."
+                        : item.enabledByOrganization
+                          ? "Hide module"
+                          : "Show module"}
                     </button>
-                    <button type="button" className="premium-danger-button">
-                      <OrgIcon name="trash" size={16} />
-                    </button>
+                    {latestItem && item.contentType && (
+                      <button
+                        type="button"
+                        className={latestItem.published ? "premium-danger-button" : "premium-success-button"}
+                        disabled={busyKey === `publish-${latestItem.id}`}
+                        onClick={() => handleTogglePublished(item.moduleCode, latestItem)}
+                      >
+                        <OrgIcon name={latestItem.published ? "trash" : "checkCircle"} size={16} />
+                        {busyKey === `publish-${latestItem.id}`
+                          ? "Saving..."
+                          : latestItem.published
+                            ? "Archive latest"
+                            : "Restore latest"}
+                      </button>
+                    )}
                   </div>
 
-                  {!item.grantedBySaas && !item.isPlaceholder && (
+                  {!item.grantedBySaas && (
                     <p style={{ marginTop: 14, color: "#9a3412" }}>
                       This module is not granted by SaaS yet.
                     </p>
@@ -253,84 +365,140 @@ function OrganizationManageModulesPage() {
         </section>
       ) : (
         <OrganizationEmptyState
-          title="No content found"
-          message="Get started by creating your first piece of content."
-          actionLabel="Create Content"
-          actionTo={createRoute ? getModuleCreateRoute(createRoute) : "/backoffice"}
-          icon="file"
+          title="No modules found"
+          message="Adjust your filter to inspect another module status."
+          icon="layers"
         />
       )}
 
-      <section className="premium-panel">
-        <div className="premium-card-stats">
-          <div>
-            <span>Granted by SaaS</span>
-            <strong>{grantedCount}</strong>
-          </div>
-          <div>
-            <span>Visible front-office</span>
-            <strong>{visibleCount}</strong>
-          </div>
-          <div>
-            <span>Unavailable</span>
-            <strong>{Math.max(modules.length - grantedCount, 0)}</strong>
-          </div>
+      {previewState.open && (
+        <div className="premium-modal-backdrop" role="presentation">
+          <section className="premium-modal premium-modal--wide" role="dialog" aria-modal="true">
+            <div className="premium-modal__header">
+              <div>
+                <h2>Page Preview</h2>
+                <p>{previewState.moduleName || "Organization content preview"}</p>
+              </div>
+              <button
+                type="button"
+                className="premium-icon-button"
+                onClick={closePagePreview}
+                aria-label="Close page preview"
+              >
+                <OrgIcon name="x" size={16} />
+              </button>
+            </div>
+            <div className="premium-modal__body">
+              {previewState.loading && (
+                <OrganizationLoadingState
+                  title="Loading page preview"
+                  message="Preparing the front-office representation."
+                />
+              )}
+
+              {!previewState.loading && previewState.error && (
+                <OrganizationNotice tone="error">{previewState.error}</OrganizationNotice>
+              )}
+
+              {!previewState.loading && !previewState.error && !previewState.publicItem && (
+                <OrganizationEmptyState
+                  title="No public preview available"
+                  message="This item is not currently visible in the front-office or has no published version."
+                  icon="eye"
+                />
+              )}
+
+              {!previewState.loading && !previewState.error && previewState.publicItem && (
+                <PagePreviewContent
+                  item={previewState.publicItem}
+                  moduleName={previewState.moduleName}
+                  moduleCode={previewState.moduleCode}
+                  branding={previewState.branding}
+                />
+              )}
+            </div>
+          </section>
         </div>
-      </section>
+      )}
     </div>
   );
 }
 
-function buildContentCards(modules) {
-  const realCards = modules.map((module, index) => ({
-    ...module,
-    status: module.enabledByOrganization ? "active" : module.grantedBySaas ? "draft" : "unavailable",
-    participants: module.participants || [1247, 892, 2103][index % 3],
-    views: module.views || [3421, 2103, 5847][index % 3],
-    engagement: module.engagement || [68, 52, 85][index % 3],
-    created: module.createdAt ? formatDate(module.createdAt) : ["Apr 1, 2026", "Mar 28, 2026", "Apr 3, 2026"][index % 3],
-    deadline: module.deadline || ["Apr 20, 2026", "Apr 27, 2026", "Apr 17, 2026"][index % 3],
-    author: module.author || "Organization staff",
-  }));
+function PagePreviewContent({ item, moduleName, moduleCode, branding }) {
+  const primaryColor = branding?.primaryColor || "#7B2CBF";
+  const secondaryColor = branding?.secondaryColor || "#FF6B35";
+  const statusLabel = item.published ? "Published" : "Draft";
+  const visibilityLabel = item.published ? "Public front-office" : "Back-office only";
 
-  if (realCards.length >= 6) return realCards;
+  return (
+    <article className="page-preview-shell">
+      <header
+        className="page-preview-header"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+        }}
+      >
+        <p>CIVOX Front-Office Preview</p>
+        <h3>{item.title}</h3>
+        <div className="page-preview-header__meta">
+          <span>{moduleName}</span>
+          <span>{moduleCode}</span>
+          <span>{statusLabel}</span>
+          <span>{visibilityLabel}</span>
+        </div>
+      </header>
 
-  const usedCodes = new Set(realCards.map((module) => module.moduleCode));
-  const placeholders = placeholderContent.filter((module) => !usedCodes.has(module.moduleCode));
+      <div className="page-preview-body">
+        <div className="page-preview-body__grid">
+          <div>
+            <strong>Title</strong>
+            <p>{item.title}</p>
+          </div>
+          <div>
+            <strong>Status</strong>
+            <p>{statusLabel}</p>
+          </div>
+          <div>
+            <strong>Visibility</strong>
+            <p>{visibilityLabel}</p>
+          </div>
+          <div>
+            <strong>Published Date</strong>
+            <p>{formatDate(item.createdAt)}</p>
+          </div>
+        </div>
 
-  return [...realCards, ...placeholders].slice(0, 6);
-}
+        <section>
+          <h4>Content</h4>
+          <p>{item.body || "No page body provided."}</p>
+        </section>
 
-function getTabCount(content, tabId) {
-  if (tabId === "all") return content.length;
-  if (tabId === "votes") return content.filter((item) => item.moduleCode === "VOTE").length;
-  if (tabId === "consultations") return content.filter((item) => item.moduleCode === "CONFERENCE").length;
-  if (tabId === "news") return content.filter((item) => item.moduleCode === "YOUTHSPACE").length;
-  return 0;
-}
-
-function getModuleInfo(moduleCode, index = 0) {
-  const map = {
-    VOTE: { icon: "vote", tone: "primary" },
-    CONFERENCE: { icon: "message", tone: "secondary" },
-    YOUTHSPACE: { icon: "file", tone: "primary" },
-  };
-
-  return map[moduleCode] || {
-    icon: index % 2 === 0 ? "layers" : "file",
-    tone: index % 2 === 0 ? "primary" : "secondary",
-  };
+        {Array.isArray(item.options) && item.options.length > 0 && (
+          <section>
+            <h4>Selectable Options</h4>
+            <div className="page-preview-options">
+              {item.options.map((option) => (
+                <span key={option}>{option}</span>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </article>
+  );
 }
 
 function formatStatus(status) {
-  if (!status) return "Draft";
-  return status
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  const labels = {
+    enabled: "Enabled",
+    hidden: "Hidden",
+    "not-granted": "Not granted",
+  };
+  return labels[status] || "Unknown";
 }
 
 function formatDate(value) {
+  if (!value) return "Not available";
   try {
     return new Intl.DateTimeFormat("en", {
       month: "short",
@@ -338,7 +506,7 @@ function formatDate(value) {
       year: "numeric",
     }).format(new Date(value));
   } catch {
-    return "";
+    return "Not available";
   }
 }
 
