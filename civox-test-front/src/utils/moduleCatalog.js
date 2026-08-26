@@ -39,6 +39,7 @@ const MODULE_METADATA = {
   },
   SURVEYS: {
     route: "/modules/surveys",
+    createRoute: "/backoffice/surveys/new",
     icon: "file",
     tone: "primary",
     category: "Surveys",

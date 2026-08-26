@@ -642,10 +642,10 @@ function RequestDetails({
           <div className="saas-request-detail__section">
             <h3>Payment link</h3>
             <p className="saas-request-muted">
-              Use this link to launch the hosted Stripe Checkout demo if SMTP delivery is unavailable.
+              Use this link to open the embedded Civox payment page if SMTP delivery is unavailable.
             </p>
             <a href={request.paymentUrl} target="_blank" rel="noreferrer" className="saas-button saas-button--outline">
-              Open Stripe checkout
+              Open embedded payment
             </a>
           </div>
         )}

@@ -6,7 +6,7 @@ function PaymentCancelPage() {
   const { token } = useParams();
   const [searchParams] = useSearchParams();
   const paymentToken = token || searchParams.get("paymentToken") || "";
-  const flow = searchParams.get("flow") || "STRIPE_CHECKOUT";
+  const flow = searchParams.get("flow") || "STRIPE_PAYMENT";
   const organizationName = searchParams.get("organizationName") || "your Civox workspace";
   const organizationSlug = searchParams.get("organizationSlug") || "";
   const planCode = searchParams.get("planCode") || "";
@@ -14,13 +14,13 @@ function PaymentCancelPage() {
   return (
     <div className="payment-page">
       <section className="payment-card payment-success-card">
-        <p className="payment-eyebrow">Stripe checkout cancelled</p>
+        <p className="payment-eyebrow">Payment cancelled</p>
         <h1>{organizationName}</h1>
         <p>
-          The hosted Stripe Checkout session was closed before payment was completed.
+          The secure Stripe payment flow was closed before payment was completed.
           {flow === "ORGANIZATION_REQUEST"
             ? " Your organization request remains saved and can be retried whenever you are ready."
-            : " Your subscription simulation remains in draft state until you launch a new checkout."}
+            : " Your subscription simulation remains in draft state until you launch a new payment."}
         </p>
 
         <div className="payment-summary-grid">
@@ -38,14 +38,14 @@ function PaymentCancelPage() {
           </div>
           <div className="payment-summary-item">
             <span>Plan</span>
-            <strong>{planCode || "Demo checkout"}</strong>
+            <strong>{planCode || "Embedded payment"}</strong>
           </div>
         </div>
 
         <div className="payment-actions">
           {paymentToken ? (
             <Link to={`/payment/${paymentToken}`} className="payment-primary-button">
-              Retry Stripe checkout
+              Retry embedded payment
             </Link>
           ) : flow === "SUBSCRIPTION" ? (
             <Link to="/saas/plans" className="payment-primary-button">

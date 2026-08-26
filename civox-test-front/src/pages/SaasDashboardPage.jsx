@@ -96,16 +96,12 @@ function SaasDashboardPage() {
       <SaasPageHeader
         eyebrow="Executive command center"
         title="CIVOX SaaS Operations"
-        description="Global supervision for tenants, onboarding, module access, subscriptions, and platform health."
+        description="Global supervision for tenants, onboarding, module access, and subscriptions."
         actions={
           <>
             <Link to="/saas/requests" className="saas-button saas-button--secondary">
               <SaasIcon name="requests" size={16} />
               Review requests
-            </Link>
-            <Link to="/saas/monitoring" className="saas-button saas-button--primary">
-              <SaasIcon name="server" size={16} />
-              Open monitoring
             </Link>
             <button type="button" className="saas-button saas-button--secondary" onClick={loadDashboard}>
               <SaasIcon name="activity" size={16} />
@@ -131,7 +127,6 @@ function SaasDashboardPage() {
         <SaasStatCard label="Pending module requests" value={formatNumber(pendingModuleRequests.length)} detail="Tenant access demand" icon="modules" tone={pendingModuleRequests.length ? "amber" : "teal"} />
         <SaasStatCard label="Active subscriptions" value={formatNumber(activeSubscriptions.length)} detail="Paid SaaS workspaces" icon="billing" tone="blue" />
         <SaasStatCard label="Monthly revenue" value={formatMoney(monthlyRevenue)} detail="Computed from active subscriptions" icon="dollar" tone="teal" />
-        <SaasStatCard label="Platform health" value={pendingOrganizationRequests.length + pendingModuleRequests.length > 8 ? "97.9%" : "99.6%"} detail="Operational status from current queues" icon="server" tone="blue" />
       </section>
 
       <section className="saas-grid saas-grid--two">
@@ -307,7 +302,6 @@ function SaasDashboardPage() {
             <Link to="/saas/organizations" className="saas-button saas-button--secondary">Open organizations</Link>
             <Link to="/saas/modules-catalog" className="saas-button saas-button--secondary">Manage modules</Link>
             <Link to="/saas/plans" className="saas-button saas-button--secondary">Open plans</Link>
-            <Link to="/saas/monitoring" className="saas-button saas-button--secondary">Open monitoring</Link>
           </div>
         </div>
       </section>

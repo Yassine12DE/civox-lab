@@ -72,7 +72,7 @@ function OrganizationManageModulesPage() {
           }
 
           try {
-            const items = await getOrganizationContent(organization.id, contentType);
+            const items = await getOrganizationContent(organization.id, contentType, true);
             return [module.moduleCode, Array.isArray(items) ? items : []];
           } catch {
             return [module.moduleCode, []];

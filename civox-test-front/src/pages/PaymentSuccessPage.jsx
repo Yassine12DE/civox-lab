@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { completePayment, getPaymentSummary } from "../services/organizationRequestService";
 import { subscribeToPublicOrganizationRequestEvents } from "../services/organizationRequestRealtimeService";
-import { getStripeCheckoutSession } from "../services/stripeService";
+import { getStripeCheckoutSession, syncPublicStripePaymentIntent } from "../services/stripeService";
 import { formatDateTime, formatMoney, formatStatus } from "../utils/saasFormat";
 import "../styles/paymentPage.css";
 
@@ -10,7 +10,7 @@ function PaymentSuccessPage() {
   const { token } = useParams();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id") || "";
+  const sessionId = searchParams.get("session_id") || searchParams.get("payment_intent") || "";
   const paymentToken = searchParams.get("paymentToken") || searchParams.get("payment_token") || "";
   const hasLegacyToken = Boolean(token);
   const initialPaymentComplete = isPaymentComplete(location.state?.summary);
@@ -25,7 +25,7 @@ function PaymentSuccessPage() {
     if (sessionId) {
       let active = true;
 
-      getStripeCheckoutSession(sessionId)
+      loadStripePaymentRecord(sessionId)
         .then((data) => {
           if (active) {
             setStripeSession(data || null);
@@ -41,7 +41,7 @@ function PaymentSuccessPage() {
           }
         })
         .catch((sessionError) => {
-          if (active) setError(sessionError.message || "Stripe checkout session could not be loaded.");
+          if (active) setError(sessionError.message || "Stripe payment record could not be loaded.");
         })
         .finally(() => {
           if (active) setLoading(false);
@@ -139,7 +139,7 @@ function PaymentSuccessPage() {
     const liveToken = paymentToken || stripeSession?.referenceToken || token;
     const interval = window.setInterval(() => {
       const summaryPromise = liveToken ? getPaymentSummarySafely(liveToken) : Promise.resolve(null);
-      const sessionPromise = sessionId ? getStripeCheckoutSession(sessionId).catch(() => null) : Promise.resolve(null);
+      const sessionPromise = sessionId ? loadStripePaymentRecord(sessionId).catch(() => null) : Promise.resolve(null);
 
       Promise.all([summaryPromise, sessionPromise]).then(([paymentSummary, nextStripeSession]) => {
         if (paymentSummary) {
@@ -171,9 +171,9 @@ function PaymentSuccessPage() {
     return (
       <div className="payment-page">
         <section className="payment-card payment-success-card">
-          <p className="payment-eyebrow">Stripe checkout</p>
+          <p className="payment-eyebrow">Stripe payment</p>
           <h1>Missing session information</h1>
-          <p>The Stripe success page needs a session id or an organization payment token.</p>
+          <p>The Stripe success page needs a payment reference or an organization payment token.</p>
           <div className="payment-actions">
             <Link to="/" className="payment-primary-button">
               Back to Civox
@@ -189,7 +189,7 @@ function PaymentSuccessPage() {
       return (
         <div className="payment-page">
           <section className="payment-card payment-success-card">
-            <p className="payment-eyebrow">Stripe checkout</p>
+            <p className="payment-eyebrow">Stripe payment</p>
             <h1>We could not confirm the session yet</h1>
             <p>{error}</p>
             <div className="payment-actions">
@@ -208,11 +208,11 @@ function PaymentSuccessPage() {
     return (
       <div className="payment-page">
         <section className="payment-card payment-success-card">
-          <p className="payment-eyebrow">Stripe checkout complete</p>
+          <p className="payment-eyebrow">Stripe payment complete</p>
           <h1>{summary?.organizationName || stripeSession?.organizationName || "Your Civox payment is complete"}</h1>
           <p>
             {isPaymentComplete(summary) || stripeSession?.paymentStatus === "COMPLETED"
-              ? "Stripe confirmed the hosted checkout and the Civox request was updated instantly."
+              ? "Stripe confirmed the payment and the Civox request was updated instantly."
               : "Stripe returned successfully and the backend is finishing the validation step."}
           </p>
 
@@ -223,7 +223,7 @@ function PaymentSuccessPage() {
           )}
 
           <div className="payment-summary-grid">
-            <Detail label="Flow" value={formatStatus(stripeSession?.flowType || "CHECKOUT")} />
+            <Detail label="Flow" value={formatStatus(stripeSession?.flowType || "PAYMENT")} />
             <Detail label="Organization" value={summary?.organizationName || stripeSession?.organizationName || "Not available"} />
             <Detail label="Slug" value={summary?.desiredSlug || stripeSession?.organizationSlug || "Not available"} />
             <Detail
@@ -241,8 +241,8 @@ function PaymentSuccessPage() {
           </div>
 
           <div className="payment-breakdown">
-            <Line label="Checkout session" value={stripeSession?.stripeSessionId || sessionId} />
-            <Line label="Plan / modules" value={stripeSession?.planCode || stripeSession?.moduleSummary || "Demo checkout"} />
+            <Line label="Payment reference" value={stripeSession?.stripeSessionId || stripeSession?.stripePaymentIntentId || sessionId} />
+            <Line label="Plan / modules" value={stripeSession?.planCode || stripeSession?.moduleSummary || "Embedded payment"} />
             <Line label="Customer email" value={stripeSession?.customerEmail || summary?.contactEmail || "Not available"} />
             {stripeSession?.stripePaymentIntentId && (
               <Line label="Payment intent" value={stripeSession.stripePaymentIntentId} />
@@ -402,6 +402,17 @@ async function getPaymentSummarySafely(token) {
   } catch {
     return null;
   }
+}
+
+async function loadStripePaymentRecord(referenceId) {
+  const data = String(referenceId || "").startsWith("pi_")
+    ? await syncPublicStripePaymentIntent(referenceId)
+    : await getStripeCheckoutSession(referenceId);
+
+  return {
+    ...data,
+    stripeSessionId: data?.stripeSessionId || data?.stripePaymentIntentId || referenceId,
+  };
 }
 
 export default PaymentSuccessPage;

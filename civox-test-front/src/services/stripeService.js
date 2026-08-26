@@ -17,8 +17,49 @@ export async function createPublicStripeCheckoutSession(payload) {
   return postJson(`${API_BASE_URL}/public/stripe/checkout-sessions`, payload, "Failed to create Stripe checkout session");
 }
 
+export async function createPublicStripePaymentIntent(payload) {
+  return postJson(`${API_BASE_URL}/public/stripe/payment-intents`, payload, "Failed to prepare secure payment");
+}
+
+export async function syncPublicStripePaymentIntent(paymentIntentId) {
+  return postJson(
+    `${API_BASE_URL}/public/stripe/payment-intents/${encodeURIComponent(paymentIntentId)}/sync`,
+    {},
+    "Failed to verify Stripe payment"
+  );
+}
+
 export async function createSaasStripeCheckoutSession(payload) {
   return postJson(`${API_BASE_URL}/saas/stripe/checkout-sessions`, payload, "Failed to create Stripe checkout session");
+}
+
+export async function createSaasStripePaymentIntent(payload) {
+  return postJson(`${API_BASE_URL}/saas/stripe/payment-intents`, payload, "Failed to prepare secure payment");
+}
+
+export async function syncSaasStripePaymentIntent(paymentIntentId) {
+  return postJson(
+    `${API_BASE_URL}/saas/stripe/payment-intents/${encodeURIComponent(paymentIntentId)}/sync`,
+    {},
+    "Failed to verify Stripe payment"
+  );
+}
+
+export async function createTenantModuleStripePaymentIntent(organizationId, moduleCode, billingCycle) {
+  const query = billingCycle ? `?billingCycle=${encodeURIComponent(billingCycle)}` : "";
+  return postJson(
+    `${API_BASE_URL}/org/${organizationId}/module-purchases/${encodeURIComponent(moduleCode)}/payment-intents${query}`,
+    {},
+    "Failed to prepare module payment"
+  );
+}
+
+export async function syncTenantStripePaymentIntent(organizationId, paymentIntentId) {
+  return postJson(
+    `${API_BASE_URL}/org/${organizationId}/stripe/payment-intents/${encodeURIComponent(paymentIntentId)}/sync`,
+    {},
+    "Failed to verify Stripe payment"
+  );
 }
 
 export async function getStripeCheckoutSession(sessionId) {

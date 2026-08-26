@@ -14,11 +14,13 @@ import {
   getCurrentOrganizationContent,
 } from "../services/organizationDynamicService";
 import { clearTokens, getAccessToken } from "../utils/tokenStorage";
+import { getPublicSurveys } from "../services/surveyService";
 import {
   canCustomizeDesign,
   canManageModuleVisibility,
   canManageUsers,
   canOpenBackOffice,
+  canCreateTenantContent,
   canRequestModules,
 } from "../utils/rbac";
 import {
@@ -130,6 +132,12 @@ function OrganizationLayout() {
       to: "/backoffice/modules",
       access: canManageModuleVisibility(currentUser),
       icon: "layers",
+    },
+    {
+      label: "Surveys",
+      to: "/backoffice/surveys",
+      access: canCreateTenantContent(currentUser) && modules.some((module) => module.moduleCode === "SURVEYS"),
+      icon: "file",
     },
     {
       label: "Settings",
@@ -410,6 +418,7 @@ function OrganizationLayout() {
 }
 
 async function loadModuleInsights(modules = []) {
+  const surveyEnabled = (modules || []).some((module) => module?.moduleCode === "SURVEYS");
   const moduleEntries = (modules || [])
     .filter((module) => module?.moduleCode)
     .map((module) => ({
@@ -442,6 +451,21 @@ async function loadModuleInsights(modules = []) {
       }
     })
   );
+
+  if (surveyEnabled) {
+    try {
+      const surveys = await getPublicSurveys();
+      results.push(["SURVEYS", {
+        contentCount: Array.isArray(surveys) ? surveys.length : 0,
+        responseCount: Array.isArray(surveys)
+          ? surveys.reduce((sum, survey) => sum + Number(survey?.responseCount || 0), 0)
+          : 0,
+        latestCreatedAt: Array.isArray(surveys) ? surveys[0]?.createdAt || null : null,
+      }]);
+    } catch {
+      results.push(["SURVEYS", { contentCount: 0, responseCount: 0, latestCreatedAt: null }]);
+    }
+  }
 
   return Object.fromEntries(results);
 }

@@ -1,5 +1,6 @@
 ﻿import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import StripeElementsPaymentForm from "../components/payments/StripeElementsPaymentForm";
 import { SaasBarChart } from "../components/saas/SaasCharts";
 import SaasIcon from "../components/saas/SaasIcon";
 import SaasLoadingState from "../components/saas/SaasLoadingState";
@@ -8,9 +9,9 @@ import SaasPageHeader from "../components/saas/SaasPageHeader";
 import SaasStatCard from "../components/saas/SaasStatCard";
 import SaasStatusBadge from "../components/saas/SaasStatusBadge";
 import { getOrganizationAccessRequests, getSaasOrganizations } from "../services/saasService";
-import { createSaasStripeCheckoutSession } from "../services/stripeService";
+import { createSaasStripePaymentIntent, syncSaasStripePaymentIntent } from "../services/stripeService";
 import { buildRevenueTrendFromSubscriptions, buildSubscriptions } from "../utils/saasDerivedData";
-import { formatDate, formatMoney, formatNumber } from "../utils/saasFormat";
+import { formatDate, formatMoney, formatNumber, formatStatus } from "../utils/saasFormat";
 
 function SaasPlansSubscriptionsPage() {
   const [organizations, setOrganizations] = useState([]);
@@ -18,6 +19,14 @@ function SaasPlansSubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState(null);
   const [busyId, setBusyId] = useState("");
+  const [paymentModal, setPaymentModal] = useState({
+    open: false,
+    subscription: null,
+    paymentIntent: null,
+    loading: false,
+    error: "",
+    success: "",
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -85,28 +94,79 @@ function SaasPlansSubscriptionsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const launchStripeCheckout = async (subscription) => {
+  const openSubscriptionPayment = async (subscription) => {
     const actionId = String(subscription.organizationId || subscription.slug || "subscription");
     setBusyId(actionId);
     setNotice(null);
+    setPaymentModal({
+      open: true,
+      subscription,
+      paymentIntent: null,
+      loading: true,
+      error: "",
+      success: "",
+    });
 
     try {
-      // Stripe test card for demo checkout: 4242 4242 4242 4242, any future expiry, any CVC.
-      const session = await createSaasStripeCheckoutSession({
+      const paymentIntent = await createSaasStripePaymentIntent({
         flowType: "SUBSCRIPTION",
         organizationId: subscription.organizationId,
         planCode: subscription.plan,
       });
 
-      if (!session?.checkoutUrl) {
-        throw new Error("Stripe checkout URL was not returned by the backend.");
+      if (!paymentIntent?.clientSecret) {
+        throw new Error("Stripe PaymentIntent client secret was not returned by the backend.");
       }
 
-      window.location.assign(session.checkoutUrl);
+      setPaymentModal((current) => ({
+        ...current,
+        paymentIntent,
+        loading: false,
+      }));
     } catch (error) {
-      setNotice({ tone: "danger", title: "Stripe checkout unavailable", message: error.message });
+      setPaymentModal((current) => ({
+        ...current,
+        loading: false,
+        error: error.message || "Secure subscription payment could not be prepared.",
+      }));
     } finally {
       setBusyId("");
+    }
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModal({
+      open: false,
+      subscription: null,
+      paymentIntent: null,
+      loading: false,
+      error: "",
+      success: "",
+    });
+  };
+
+  const handleSubscriptionPaymentSuccess = async (paymentIntent) => {
+    setPaymentModal((current) => ({
+      ...current,
+      paymentIntent,
+      error: "",
+      success: "Subscription payment confirmed. The organization billing record has been updated.",
+    }));
+    setNotice({
+      tone: "success",
+      title: "Subscription payment confirmed",
+      message: `${paymentIntent.organizationName || "The organization"} was updated after Stripe verified the payment.`,
+    });
+
+    try {
+      const [organizationsData, requestsData] = await Promise.all([
+        getSaasOrganizations(),
+        getOrganizationAccessRequests(),
+      ]);
+      setOrganizations(Array.isArray(organizationsData) ? organizationsData : []);
+      setRequests(Array.isArray(requestsData) ? requestsData : []);
+    } catch {
+      // Payment succeeded; refreshing the table is best-effort.
     }
   };
 
@@ -120,15 +180,9 @@ function SaasPlansSubscriptionsPage() {
         description="Pricing packages, subscription lifecycle, trials, renewals, and commercial controls."
         breadcrumbs={[{ label: "Dashboard", to: "/saas" }, { label: "Plans & Subscriptions" }]}
         actions={
-          <>
-            <button type="button" className="saas-button saas-button--outline" onClick={exportSubscriptions}>
-              Export subscriptions
-            </button>
-            <Link to="/saas/settings" className="saas-button saas-button--primary">
-              <SaasIcon name="plus" size={16} />
-              Manage defaults
-            </Link>
-          </>
+          <button type="button" className="saas-button saas-button--outline" onClick={exportSubscriptions}>
+            Export subscriptions
+          </button>
         }
       />
 
@@ -201,7 +255,6 @@ function SaasPlansSubscriptionsPage() {
             </ul>
             <div className="saas-plan-card__footer">
               <span>{formatNumber(plan.organizations)} organizations</span>
-              <Link to="/saas/settings" className="saas-button saas-button--outline">Manage plan</Link>
             </div>
           </article>
         ))}
@@ -249,13 +302,13 @@ function SaasPlansSubscriptionsPage() {
                       <button
                         type="button"
                         className="saas-button saas-button--primary"
-                        onClick={() => launchStripeCheckout(subscription)}
+                        onClick={() => openSubscriptionPayment(subscription)}
                         disabled={!!busyId}
                         aria-busy={busyId === String(subscription.organizationId || subscription.slug || "subscription")}
                       >
                         {busyId === String(subscription.organizationId || subscription.slug || "subscription")
-                          ? "Opening..."
-                          : "Stripe checkout"}
+                          ? "Preparing..."
+                          : "Pay in app"}
                       </button>
                     </div>
                   </td>
@@ -263,6 +316,85 @@ function SaasPlansSubscriptionsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      {paymentModal.open && (
+        <SubscriptionPaymentModal
+          modal={paymentModal}
+          onClose={closePaymentModal}
+          onSuccess={handleSubscriptionPaymentSuccess}
+          onError={(message) => {
+            setPaymentModal((current) => ({ ...current, error: message, success: "" }));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SubscriptionPaymentModal({ modal, onClose, onSuccess, onError }) {
+  const { subscription, paymentIntent, loading, error, success } = modal;
+  const amountLabel = paymentIntent?.amount !== undefined
+    ? formatMoney(paymentIntent.amount)
+    : formatMoney(Number(subscription?.mrr || 0) * 1000);
+
+  return (
+    <div className="saas-modal-backdrop" role="presentation">
+      <section className="saas-modal saas-modal--payment" role="dialog" aria-modal="true" aria-labelledby="subscription-payment-title">
+        <div className="saas-modal__header">
+          <div>
+            <h2 id="subscription-payment-title">Embedded Stripe payment</h2>
+            <p>Complete the selected subscription payment without leaving the SaaS console.</p>
+          </div>
+          <button type="button" className="saas-icon-button" onClick={onClose} aria-label="Close payment modal">
+            <SaasIcon name="close" size={16} />
+          </button>
+        </div>
+
+        <div className="saas-modal__body saas-payment-modal__body">
+          {error && <SaasNotice tone="danger" title="Payment issue" message={error} />}
+          {success && <SaasNotice tone="success" title="Payment verified" message={success} />}
+
+          <div className="saas-payment-summary">
+            <div>
+              <span>Selected plan</span>
+              <strong>{subscription?.plan || paymentIntent?.planCode || "Subscription"}</strong>
+            </div>
+            <div>
+              <span>Organization</span>
+              <strong>{subscription?.organization || paymentIntent?.organizationName || "Organization"}</strong>
+            </div>
+            <div>
+              <span>Price</span>
+              <strong>{amountLabel}</strong>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="saas-loading-state saas-payment-loading">
+              <span>Preparing Stripe Elements...</span>
+              <div className="saas-skeleton saas-skeleton--header" />
+            </div>
+          )}
+
+          {!loading && paymentIntent && (
+            <StripeElementsPaymentForm
+              paymentIntent={paymentIntent}
+              syncPaymentIntent={syncSaasStripePaymentIntent}
+              returnUrl={`${window.location.origin}/saas/plans`}
+              buttonLabel={`Pay ${amountLabel}`}
+              submitClassName="saas-payment-submit"
+              successMessage="Payment confirmed. Subscription status is now synchronized."
+              onSuccess={onSuccess}
+              onError={onError}
+            />
+          )}
+
+          <div className="saas-payment-modal__footer">
+            <SaasStatusBadge status={paymentIntent?.paymentStatus || "OPEN"} label={formatStatus(paymentIntent?.paymentStatus || "OPEN")} />
+            <span>Stripe test card: 4242 4242 4242 4242</span>
+          </div>
         </div>
       </section>
     </div>

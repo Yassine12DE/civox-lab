@@ -42,7 +42,7 @@ function SaasLoginPage() {
           <div className="saas-login-panel-header">
             <p className="saas-login-badge">Secure SUPER_ADMIN access</p>
             <h1>Sign in to the global platform console</h1>
-            <p>Restricted access for managing tenants, subscriptions, modules, users, audit, and monitoring.</p>
+            <p>Restricted access for managing tenants, subscriptions, modules, and users.</p>
           </div>
 
           {error && <p className="saas-login-error">{error}</p>}

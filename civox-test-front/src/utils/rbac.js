@@ -6,7 +6,7 @@ export const ROLES = {
   CITIZEN: "CITIZEN",
 };
 
-const MANAGER_CREATION_MODULE_CODES = ["VOTE", "CONFERENCE", "YOUTHSPACE"];
+const MANAGER_CREATION_MODULE_CODES = ["VOTE", "CONFERENCE", "YOUTHSPACE", "SURVEYS"];
 
 export function isSuperAdmin(userOrRole) {
   return roleOf(userOrRole) === ROLES.SUPER_ADMIN;

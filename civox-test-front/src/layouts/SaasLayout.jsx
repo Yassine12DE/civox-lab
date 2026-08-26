@@ -30,9 +30,6 @@ const NAV_SECTIONS = [
     items: [
       { label: "Global Users", to: "/saas/users", icon: "users" },
       { label: "Modules Catalog", to: "/saas/modules-catalog", icon: "book" },
-      { label: "Audit Log", to: "/saas/activity", icon: "activity" },
-      { label: "Platform Monitoring", to: "/saas/monitoring", icon: "server" },
-      { label: "Settings", to: "/saas/settings", icon: "settings" },
     ],
   },
 ];
@@ -47,9 +44,6 @@ function getCurrentTitle(pathname) {
   if (pathname === "/saas/billing") return "Billing & Invoices";
   if (pathname === "/saas/quotes-payments") return "Quotes & Payments";
   if (pathname === "/saas/users") return "Global Users";
-  if (pathname === "/saas/activity") return "Audit Log";
-  if (pathname === "/saas/monitoring") return "Platform Monitoring";
-  if (pathname === "/saas/settings") return "Settings";
   if (pathname.includes("/modules")) return "Module Access";
   if (pathname.startsWith("/saas/organizations/")) return "Organization Profile";
   return "SaaS Back-Office";
@@ -79,8 +73,6 @@ function SaasLayout() {
   const title = getCurrentTitle(location.pathname);
   const displayName = formatDisplayName(user);
   const roleLabel = user?.role || getTokenRole() || "SUPER_ADMIN";
-  const hasWarningSignal = signals.some((signal) => signal.tone === "warning");
-  const healthLabel = hasWarningSignal ? "98.9%" : "99.7%";
 
   useEffect(() => {
     document.title = `${title} | Civox SaaS`;
@@ -139,14 +131,6 @@ function SaasLayout() {
             detail: `${pendingModules} module request(s) are pending.`,
           });
         }
-        if (!nextSignals.length) {
-          nextSignals.push({
-            tone: "info",
-            title: "System stable",
-            detail: "No pending onboarding or module approvals.",
-          });
-        }
-
         setSignals(nextSignals);
       } catch {
         if (active) {
@@ -201,9 +185,6 @@ function SaasLayout() {
     } else if (normalized.startsWith("request:") || normalized.startsWith("requests:")) {
       target = "/saas/requests";
       query = raw.replace(/^requests?:/i, "").trim() || raw;
-    } else if (normalized.startsWith("activity:") || normalized.startsWith("audit:")) {
-      target = "/saas/activity";
-      query = raw.replace(/^(activity|audit):/i, "").trim() || raw;
     }
 
     navigate(`${target}?q=${encodeURIComponent(query)}`);
@@ -258,15 +239,6 @@ function SaasLayout() {
           ))}
         </nav>
 
-        <div className="saas-sidebar__footer">
-          <span className="saas-sidebar__shield">
-            <SaasIcon name="shield" size={18} />
-          </span>
-          <div>
-            <strong>Platform health {healthLabel}</strong>
-            <p>{hasWarningSignal ? "Some queues require review." : "Production systems operational."}</p>
-          </div>
-        </div>
       </aside>
 
       {sidebarOpen && (
@@ -311,12 +283,6 @@ function SaasLayout() {
                 }}
               />
             </label>
-
-            <div className="saas-health-pill" title="Platform health">
-              <span />
-              <strong>{healthLabel}</strong>
-              <small>{hasWarningSignal ? "Watch" : "Healthy"}</small>
-            </div>
 
             <div className="saas-notification-menu" ref={notificationRef}>
               <button
@@ -369,22 +335,6 @@ function SaasLayout() {
                     <strong>{displayName}</strong>
                     <span>{user?.email || "SUPER_ADMIN session"}</span>
                   </div>
-                  <Link
-                    to="/saas/settings"
-                    className="saas-profile-dropdown__item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <SaasIcon name="settings" size={16} />
-                    Account settings
-                  </Link>
-                  <Link
-                    to="/saas/activity"
-                    className="saas-profile-dropdown__item"
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    <SaasIcon name="activity" size={16} />
-                    Audit trail
-                  </Link>
                   <button
                     type="button"
                     className="saas-profile-dropdown__item saas-profile-dropdown__item--danger"

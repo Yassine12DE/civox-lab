@@ -485,9 +485,9 @@ function TenantAreaChart({ chart }) {
     "value",
     "votes",
     "consultations",
-    "comments",
     "reactions",
     "requests",
+    "surveys",
   ]);
   const [activeIndex, setActiveIndex] = useState(null);
   const summary = useMemo(() => buildSeriesSummary(points, "value"), [points]);
@@ -506,7 +506,7 @@ function TenantAreaChart({ chart }) {
         <h3>{chart?.title || "Engagement evolution"}</h3>
         <p>
           {chart?.subtitle ||
-            "Votes, consultation participation, reactions, comments, and requests over time."}
+            "Votes, consultation participation, reactions, and module requests over time."}
         </p>
       </div>
       <div className="tenant-trend-summary">
@@ -606,9 +606,9 @@ function TenantAreaChart({ chart }) {
                 <span>
                   Consultations: {formatCompactNumber(toNumber(activePoint?.consultations))}
                 </span>
-                <span>Comments: {formatCompactNumber(toNumber(activePoint?.comments))}</span>
                 <span>Reactions: {formatCompactNumber(toNumber(activePoint?.reactions))}</span>
                 <span>Requests: {formatCompactNumber(toNumber(activePoint?.requests))}</span>
+                <span>Surveys: {formatCompactNumber(toNumber(activePoint?.surveys))}</span>
               </div>
             )}
 
@@ -755,7 +755,7 @@ function TenantLineComparisonChart({ chart }) {
                   Cumulative users: {formatCompactNumber(toNumber(activePoint?.cumulative))}
                 </span>
                 <span>
-                  Active users: {formatCompactNumber(toNumber(activePoint?.activeUsers))}
+                  Enabled users: {formatCompactNumber(toNumber(activePoint?.activeUsers))}
                 </span>
               </div>
             )}
@@ -771,7 +771,7 @@ function TenantLineComparisonChart({ chart }) {
       <div className="tenant-chart-legend">
         <span><i className="tenant-chart-dot tenant-chart-dot--bar" /> New users</span>
         <span><i className="tenant-chart-dot tenant-chart-dot--solid" /> Cumulative users</span>
-        <span><i className="tenant-chart-dot tenant-chart-dot--dashed" /> Active users</span>
+        <span><i className="tenant-chart-dot tenant-chart-dot--dashed" /> Enabled users</span>
       </div>
       <div className="tenant-trend-chart__axis-labels">
         <span>{chart?.yAxisLabel || "Users"}</span>

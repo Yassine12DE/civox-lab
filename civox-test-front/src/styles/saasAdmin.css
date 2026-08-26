@@ -3616,8 +3616,81 @@
   font-weight: 640;
 }
 
+.saas-modal--payment {
+  width: min(100%, 760px);
+}
+
+.saas-payment-modal__body {
+  display: grid;
+  gap: 16px;
+}
+
+.saas-payment-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.saas-payment-summary div {
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9fd 100%);
+  padding: 13px;
+}
+
+.saas-payment-summary span,
+.saas-payment-summary strong {
+  display: block;
+}
+
+.saas-payment-summary span {
+  color: var(--saas-muted);
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.saas-payment-summary strong {
+  color: var(--saas-text);
+}
+
+.saas-payment-loading {
+  box-shadow: none;
+}
+
+.saas-payment-submit {
+  width: 100%;
+}
+
+.saas-payment-modal__footer {
+  border: 1px solid var(--saas-border);
+  border-radius: 12px;
+  background: var(--saas-surface-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+}
+
+.saas-payment-modal__footer > span:last-child {
+  color: var(--saas-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 760px) {
   .saas-preview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .saas-payment-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .saas-payment-modal__footer {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

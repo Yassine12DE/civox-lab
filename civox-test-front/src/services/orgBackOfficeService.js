@@ -143,8 +143,9 @@ export async function setOrganizationUserArchived(organizationId, userId, archiv
   return await response.json();
 }
 
-export async function getOrganizationContent(organizationId, contentType) {
-  const response = await fetchWithAuth(`${API_BASE_URL}/org/${organizationId}/content/${contentType}`);
+export async function getOrganizationContent(organizationId, contentType, management = false) {
+  const query = management ? "?management=true" : "";
+  const response = await fetchWithAuth(`${API_BASE_URL}/org/${organizationId}/content/${contentType}${query}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch organization content");

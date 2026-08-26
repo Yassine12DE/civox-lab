@@ -134,6 +134,105 @@
   font-weight: 900;
 }
 
+.payment-embedded-panel {
+  border: 1px solid var(--civox-border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 107, 53, 0.12), transparent 34%),
+    linear-gradient(180deg, #ffffff 0%, #fbf9fd 100%);
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+  padding: 18px;
+}
+
+.payment-embedded-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.payment-embedded-panel h2 {
+  color: var(--civox-ink);
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0 0 6px;
+}
+
+.payment-secure-badge {
+  border-radius: 999px;
+  background: #f1fbf5;
+  color: #116149;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.payment-order-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payment-order-summary div {
+  border: 1px solid rgba(123, 44, 191, 0.12);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.payment-order-summary span,
+.payment-order-summary strong {
+  display: block;
+}
+
+.payment-order-summary span {
+  color: var(--civox-muted);
+  font-size: 11px;
+  font-weight: 900;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.payment-order-summary strong {
+  color: var(--civox-ink);
+}
+
+.payment-inline-loading,
+.payment-retry-button {
+  border: 1px solid var(--civox-border);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--civox-purple-dark);
+  font-weight: 900;
+  padding: 14px;
+}
+
+.payment-inline-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.payment-inline-loading span {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--civox-purple);
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: paymentInlineSpin 720ms linear infinite;
+}
+
+.payment-retry-button {
+  cursor: pointer;
+}
+
+.payment-retry-button:hover {
+  background: var(--civox-soft);
+}
+
 .payment-assumptions {
   margin-top: 16px;
   font-size: 14px;
@@ -267,6 +366,12 @@
   }
 }
 
+@keyframes paymentInlineSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 700px) {
   .payment-card {
     padding: 22px;
@@ -282,6 +387,14 @@
   }
 
   .payment-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-embedded-panel__header {
+    flex-direction: column;
+  }
+
+  .payment-order-summary {
     grid-template-columns: 1fr;
   }
 

@@ -53,6 +53,11 @@ function OrganizationContentCreatePage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [optionsText, setOptionsText] = useState("Yes\nNo");
+  const [published, setPublished] = useState(true);
+  const [openingAt, setOpeningAt] = useState("");
+  const [closingAt, setClosingAt] = useState("");
+  const [resultVisibility, setResultVisibility] = useState("AFTER_RESPONSE");
+  const [featured, setFeatured] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,7 +78,7 @@ function OrganizationContentCreatePage() {
 
     try {
       setLoading(true);
-      const data = await getOrganizationContent(organization.id, config.apiType);
+      const data = await getOrganizationContent(organization.id, config.apiType, true);
       setItems(data);
     } catch (loadError) {
       setError(loadError.message || "Failed to load content");
@@ -103,12 +108,16 @@ function OrganizationContentCreatePage() {
         title,
         body,
         options,
-        published: true,
+        published,
+        openingAt: openingAt || null,
+        closingAt: closingAt || null,
+        resultVisibility,
+        featured,
       });
       setTitle("");
       setBody("");
       setOptionsText("Yes\nNo");
-      setMessage("Published successfully.");
+      setMessage(published ? "Published successfully." : "Draft saved successfully.");
       await loadItems();
     } catch (submitError) {
       setError(submitError.message || "Failed to publish content");
@@ -209,8 +218,29 @@ function OrganizationContentCreatePage() {
             </div>
           )}
 
+          <div className="premium-field-grid">
+            <div className="premium-field">
+              <label>Opens</label>
+              <input type="datetime-local" value={openingAt} onChange={(event) => setOpeningAt(event.target.value)} />
+            </div>
+            <div className="premium-field">
+              <label>Closes</label>
+              <input type="datetime-local" value={closingAt} onChange={(event) => setClosingAt(event.target.value)} />
+            </div>
+          </div>
+          <div className="premium-field">
+            <label>Result visibility</label>
+            <select value={resultVisibility} onChange={(event) => setResultVisibility(event.target.value)}>
+              <option value="AFTER_RESPONSE">After member responds</option>
+              <option value="AFTER_CLOSE">After closing</option>
+              <option value="PRIVATE">Operators only</option>
+            </select>
+          </div>
+          <label className="org-survey-option"><input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} /> Featured content</label>
+          <label className="org-survey-option"><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Publish immediately</label>
+
           <button type="submit" className="premium-gradient-button" disabled={saving}>
-            {saving ? "Publishing..." : config.submitLabel}
+            {saving ? "Saving..." : published ? config.submitLabel : "Save draft"}
           </button>
         </form>
 
@@ -229,7 +259,7 @@ function OrganizationContentCreatePage() {
               items.map((item) => (
                 <article key={item.id} className="premium-list-row">
                   <div>
-                    <PremiumStatusBadge status="Published">Published</PremiumStatusBadge>
+                    <PremiumStatusBadge status={item.lifecycle}>{item.lifecycle || (item.published ? "Published" : "Draft")}</PremiumStatusBadge>
                     <h3 style={{ marginTop: 10 }}>{item.title}</h3>
                     <p>{item.body}</p>
                     {item.options?.length > 0 && (

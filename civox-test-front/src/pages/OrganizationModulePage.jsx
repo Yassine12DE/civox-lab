@@ -22,7 +22,7 @@ import {
 import { getCurrentOrganizationContent } from "../services/organizationDynamicService";
 
 function OrganizationModulePage() {
-  const { moduleSlug } = useParams();
+  const { moduleSlug, contentId } = useParams();
   const { modules, currentUser, organization } = useOutletContext();
   const [items, setItems] = useState([]);
   const [loadingContent, setLoadingContent] = useState(false);
@@ -61,7 +61,10 @@ function OrganizationModulePage() {
     loadContent();
   }, [loadContent]);
 
-  const displayItem = useMemo(() => items[0] || null, [items]);
+  const displayItem = useMemo(
+    () => contentId ? items.find((item) => String(item.id) === String(contentId)) || null : null,
+    [contentId, items]
+  );
 
   const saveResponse = async (payload) => {
     if (!currentUser || !displayItem || !organization?.id || !contentType) {
@@ -153,16 +156,55 @@ function OrganizationModulePage() {
     );
   }
 
+  if (!contentId && items.length > 0) {
+    return (
+      <div className="premium-page">
+        <section className="premium-section">
+          <div className="premium-container">
+            <div className="premium-detail-header">
+              <div className="premium-detail-header__badges">
+                <span className="premium-status premium-status--neutral">{getModuleCategory(module.moduleCode)}</span>
+                <PremiumStatusBadge status="Active">{items.length} published</PremiumStatusBadge>
+              </div>
+              <h1>{module.moduleName}</h1>
+              <p>{module.moduleDescription || "Explore all published organization content in this module."}</p>
+            </div>
+            {contentError && <OrganizationNotice tone="error">{contentError}</OrganizationNotice>}
+            <div className="premium-content-grid">
+              {items.map((item) => (
+                <article key={item.id} className="premium-content-card">
+                  <div className="premium-content-card__header">
+                    <p>{formatDate(item.createdAt)}</p>
+                    <h3>{item.title}</h3>
+                  </div>
+                  <div className="premium-content-card__body">
+                    <p>{item.body || "Open this item to review the details and participate."}</p>
+                    <div className="premium-card-stats">
+                      <span><strong>{Number(item.totalResponses || 0)}</strong> Responses</span>
+                    </div>
+                    <Link to={`/modules/${moduleSlug}/${item.id}`} className="premium-soft-button">
+                      Open item <OrgIcon name="arrowRight" size={16} />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   if (!displayItem) {
     return (
       <div className="premium-page">
         <section className="premium-section">
           <div className="premium-container">
             <OrganizationEmptyState
-              title="No published content yet"
-              message="This module is enabled, but no content has been published."
-              actionLabel="Back to modules"
-              actionTo="/modules"
+              title={contentId ? "Content unavailable" : "No published content yet"}
+              message={contentId ? "This item does not exist or is not published." : "This module is enabled, but no content has been published."}
+              actionLabel={contentId ? "Back to module" : "Back to modules"}
+              actionTo={contentId ? `/modules/${moduleSlug}` : "/modules"}
               icon="file"
             />
           </div>
@@ -173,7 +215,6 @@ function OrganizationModulePage() {
 
   const options = normalizeOptions(displayItem, module.moduleCode);
   const totalVotes = Number(displayItem.totalResponses || 0);
-  const participation = totalVotes > 0 ? 100 : 0;
   const responded =
     hasResponded ||
     Boolean(
@@ -186,7 +227,7 @@ function OrganizationModulePage() {
     <div className="premium-page">
       <div className="premium-detail-topbar">
         <div className="premium-detail-topbar__inner">
-          <Link to="/modules" className="premium-back-link">
+          <Link to={`/modules/${moduleSlug}`} className="premium-back-link">
             <OrgIcon name="arrowLeft" size={20} />
             Back to Modules
           </Link>
@@ -199,7 +240,7 @@ function OrganizationModulePage() {
             <span className="premium-status premium-status--neutral">
               {getModuleCategory(module.moduleCode)}
             </span>
-            <PremiumStatusBadge status="Active">Active</PremiumStatusBadge>
+            <PremiumStatusBadge status={displayItem.lifecycle}>{displayItem.lifecycle || "Active"}</PremiumStatusBadge>
             <span className="premium-status premium-status--neutral">
               {getModuleResponseLabel(module.moduleCode)}
             </span>
@@ -224,6 +265,12 @@ function OrganizationModulePage() {
                 <p>Content is public, but responses are saved only for authenticated tenant users.</p>
               </div>
             )}
+            {currentUser && !displayItem.acceptingResponses && (
+              <div className="premium-alert-card">
+                <h3>Responses are closed</h3>
+                <p>This item is available to read, but its participation window is not open.</p>
+              </div>
+            )}
 
             <section className="premium-panel">
               <h2>{responded ? "Your Response" : getChooseTitle(module.moduleCode)}</h2>
@@ -236,14 +283,14 @@ function OrganizationModulePage() {
                     (option.participating !== undefined &&
                       displayItem.myParticipating === option.participating) ||
                     (option.reaction !== undefined && Boolean(displayItem.myReaction && option.reaction));
-                  const showResults = responded || totalVotes > 0;
+                  const showResults = Boolean(displayItem.resultsVisible);
 
                   return (
                     <button
                       key={option.value}
                       type="button"
                       className={`premium-vote-option ${isSelected ? "is-selected" : ""}`}
-                      disabled={!currentUser || savingContentId === displayItem.id || responded}
+                      disabled={!currentUser || !displayItem.acceptingResponses || savingContentId === displayItem.id}
                       onClick={() => setSelectedOption(option.value)}
                     >
                       {showResults && (
@@ -270,7 +317,7 @@ function OrganizationModulePage() {
                 })}
               </div>
 
-              {!responded && currentUser && (
+              {currentUser && displayItem.acceptingResponses && (
                 <div style={{ marginTop: 28 }}>
                   <button
                     type="button"
@@ -278,7 +325,7 @@ function OrganizationModulePage() {
                     disabled={!selectedOption || savingContentId === displayItem.id}
                     onClick={() => saveResponse(buildPayload(module.moduleCode, selectedOption))}
                   >
-                    {selectedOption ? getSubmitLabel(module.moduleCode) : "Select an option to continue"}
+                    {selectedOption ? (responded ? "Update response" : getSubmitLabel(module.moduleCode)) : "Select an option to continue"}
                   </button>
                 </div>
               )}
@@ -320,18 +367,15 @@ function OrganizationModulePage() {
                     <OrgIcon name="users" size={16} />
                     Total Responses
                   </span>
-                  <strong>{totalVotes.toLocaleString()}</strong>
+                  <strong>{displayItem.resultsVisible ? totalVotes.toLocaleString() : "Hidden"}</strong>
                 </div>
 
                 <div className="premium-stat-list__item">
                   <span className="premium-stat-list__label">
                     <OrgIcon name="trending" size={16} />
-                    Participation
+                    Recorded responses
                   </span>
-                  <strong>{participation}%</strong>
-                  <div className="premium-progress">
-                    <span style={{ width: `${participation}%` }} />
-                  </div>
+                  <strong>{displayItem.resultsVisible ? totalVotes.toLocaleString() : "Hidden"}</strong>
                 </div>
 
                 <div className="premium-timeline">
@@ -373,10 +417,8 @@ function normalizeOptions(item, moduleCode) {
 
   if (moduleCode === "YOUTHSPACE") {
     const reacted = Number(breakdown.reacted || 0);
-    const follow = Number(breakdown.follow || 0);
     return [
       buildOption("react", "React", "Save a reaction to this update.", reacted, totalResponses, { reaction: true }),
-      buildOption("follow", "Follow updates", "Keep following this topic.", follow, totalResponses, { reaction: false }),
     ];
   }
 

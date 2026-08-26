@@ -21,24 +21,6 @@ export async function loginToOrganization(email, password) {
   return data;
 }
 
-export async function getCurrentAuthenticatedUser() {
-  const token = localStorage.getItem("civox_access_token");
-
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch current user");
-  }
-
-  return data;
-}
-
 export async function getCurrentOrganizationBranding() {
   const response = await fetch(`${API_BASE_URL}/public/organization`);
 

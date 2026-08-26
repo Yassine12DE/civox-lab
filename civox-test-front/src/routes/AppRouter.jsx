@@ -29,18 +29,20 @@ import OrganizationUserManagementPage from "../pages/OrganizationUserManagementP
 import OrganizationModulePage from "../pages/OrganizationModulePage";
 import OrganizationModulesPage from "../pages/OrganizationModulesPage";
 import OrganizationContentCreatePage from "../pages/OrganizationContentCreatePage";
-import SaasAuditLogPage from "../pages/SaasAuditLogPage";
+import OrganizationSurveyPage from "../pages/OrganizationSurveyPage";
+import OrganizationSurveyAdminPage from "../pages/OrganizationSurveyAdminPage";
+import OrganizationSurveyEditorPage from "../pages/OrganizationSurveyEditorPage";
+import OrganizationSurveyResultsPage from "../pages/OrganizationSurveyResultsPage";
 import SaasBillingInvoicesPage from "../pages/SaasBillingInvoicesPage";
 import SaasGlobalUsersPage from "../pages/SaasGlobalUsersPage";
 import SaasModulesCatalogPage from "../pages/SaasModulesCatalogPage";
-import SaasPlatformMonitoringPage from "../pages/SaasPlatformMonitoringPage";
 import SaasPlansSubscriptionsPage from "../pages/SaasPlansSubscriptionsPage";
 import SaasQuotesPaymentsPage from "../pages/SaasQuotesPaymentsPage";
-import SaasSettingsPage from "../pages/SaasSettingsPage";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { getTenantSlugFromHost } from "../utils/tenant";
 import { getAccessToken } from "../utils/tokenStorage";
 import { ROLES } from "../utils/rbac";
+import FloatingChatbot from "../components/FloatingChatbot";
 
 function AppRouter() {
   const tenantSlug = getTenantSlugFromHost();
@@ -97,9 +99,9 @@ function AppRouter() {
               <Route path="billing" element={<SaasBillingInvoicesPage />} />
               <Route path="quotes-payments" element={<SaasQuotesPaymentsPage />} />
               <Route path="users" element={<SaasGlobalUsersPage />} />
-              <Route path="activity" element={<SaasAuditLogPage />} />
-              <Route path="monitoring" element={<SaasPlatformMonitoringPage />} />
-              <Route path="settings" element={<SaasSettingsPage />} />
+              <Route path="activity" element={<Navigate to="/saas" replace />} />
+              <Route path="monitoring" element={<Navigate to="/saas" replace />} />
+              <Route path="settings" element={<Navigate to="/saas" replace />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -118,6 +120,9 @@ function AppRouter() {
               <Route index element={<OrganizationDetailsPage />} />
               <Route path="forbidden" element={<ForbiddenPage />} />
               <Route path="modules" element={<OrganizationModulesPage />} />
+              <Route path="modules/surveys" element={<OrganizationSurveyPage />} />
+              <Route path="modules/surveys/:surveyId" element={<OrganizationSurveyPage />} />
+              <Route path="modules/:moduleSlug/:contentId" element={<OrganizationModulePage />} />
               <Route path="modules/:moduleSlug" element={<OrganizationModulePage />} />
               <Route
                 path="me"
@@ -192,6 +197,38 @@ function AppRouter() {
                 }
               />
               <Route
+                path="backoffice/surveys"
+                element={
+                  <ProtectedRoute allowedRoles={createContentRoles}>
+                    <OrganizationSurveyAdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="backoffice/surveys/new"
+                element={
+                  <ProtectedRoute allowedRoles={createContentRoles}>
+                    <OrganizationSurveyEditorPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="backoffice/surveys/:surveyId/edit"
+                element={
+                  <ProtectedRoute allowedRoles={createContentRoles}>
+                    <OrganizationSurveyEditorPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="backoffice/surveys/:surveyId/results"
+                element={
+                  <ProtectedRoute allowedRoles={userManagementRoles}>
+                    <OrganizationSurveyResultsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="backoffice/create/:contentType"
                 element={
                   <ProtectedRoute allowedRoles={createContentRoles}>
@@ -205,6 +242,7 @@ function AppRouter() {
           </>
         )}
       </Routes>
+      <FloatingChatbot />
     </BrowserRouter>
   );
 }
